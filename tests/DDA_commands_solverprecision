@@ -1,0 +1,16 @@
+# ============================================================================
+# NOTE: The 'adda' and 'ifdda' prefixes are only indicative — they help
+#       clarify which command line belongs to which code.
+#       These executable paths are NOT used directly.
+#
+#       The actual paths to ADDA and IFDDA are defined in the compare_digits.py
+#       script via the variables:
+#           ADDA_PATH = "..."
+#           IFDDA_PATH = "..."
+# ============================================================================
+#----------Diagonal anisotropy----------#
+adda -lambda 0.5 -shape sphere -size 1.0 -iter bicgstab -m 1.302265942870714 0.07678923076154483 1.1 0.0 1.2 0.0 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -anisotr -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -trope 1.69 0.2 0.0 0.0 0.0 0.0 0.0 0.0 1.21 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.44 0.0 -prop 35 30
+#----------Inhomogeneous sphere in a vacuum cube----------#
+adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 0 0 1

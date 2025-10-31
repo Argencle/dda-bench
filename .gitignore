@@ -1,0 +1,16 @@
+# virtualenv / local
+.venv/
+__pycache__/
+.DS_Store
+
+# editors / IDE
+.vscode/
+
+# Project‑specific folders
+adda/
+if-dda/
+ddscat*/
+
+# Output files/folders
+output/
+*.log

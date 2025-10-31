@@ -1,0 +1,58 @@
+# ============================================================================
+# NOTE: The 'adda' and 'ifdda' prefixes are only indicative — they help
+#       clarify which command line belongs to which code.
+#       These executable paths are NOT used directly.
+#
+#       The actual paths to ADDA and IFDDA are defined in the compare_digits.py
+#       script via the variables:
+#           ADDA_PATH = "..."
+#           IFDDA_PATH = "..."
+# ============================================================================
+#----------Radiative Reaction Correction----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0
+#----------Clausius Mossotti----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0
+#----------Lakhtakia----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol lak -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LA -nnnr 16 -ninitest 0
+#----------Digitized Green's function----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol dgf -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability GB -nnnr 16 -ninitest 0
+#----------Filtered Coupled Dipoles----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -grid 16 -init_field zero -no_vol_cor -int fcd -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 16 -ninitest 0
+#----------Isotropized Lattice Dispersion Relation----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr avgpol -grid 16 -init_field zero -no_vol_cor -prop 0.8506508083520399 0 0.5257311121191336 -sym enf -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LR -nnnr 16 -ninitest 0 -prop 58.282525588538995 0.0
+#----------Classic Lattice Dispersion Relation----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0  -prop 35 30
+#----------Integrated Green's Tensor----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -int igt 1 -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -igt 1
+#----------Bi-conjugate gradient stabilized----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
+#----------Cube----------#
+adda -lambda 0.5 -shape box 1 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr
+ifdda -lambda 500 -object cube 200 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
+#----------Cuboid----------#
+adda -lambda 0.5 -shape box 1 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr
+ifdda -lambda 500 -object cuboid1 200 200 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
+#----------Cylinder----------#
+adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
+#----------Arbitrary propagation direction----------#
+adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr
+ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30
+#----------z-polarisation direction----------#
+adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -scat dr
+ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30 -beam pwavelinear 1 1
+#----------Diagonal anisotropy----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 1.1 0.0 1.2 0.0 -eps 12 -pol rrc -grid 16 -init_field zero -no_vol_cor -anisotr -scat dr -sym enf 
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -tolinit 1.d-12 -polarizability RR -nnnr 16 -ninitest 0 -trope 1.69 0.2 0.0 0.0 0.0 0.0 0.0 0.0 1.21 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.44 0.0
+#----------Inhomogeneous sphere in a vacuum cube with eps=12----------#
+adda -lambda 0.5 -shape spherebox 1 -size 0.2 -iter qmr -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 12 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-12 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 0 1
