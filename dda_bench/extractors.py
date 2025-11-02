@@ -1,104 +1,172 @@
+import json
 import re
-import h5py
 import logging
+import h5py
 import pandas as pd
-from typing import Optional, Tuple
+from pathlib import Path
+from typing import Tuple, Optional, Dict, Any
 
 
-def extract_value_from_ifdda(file_path: str, key: str) -> Optional[float]:
-    """Extract the Cext value from IFDDA output."""
-    with open(file_path, "r") as f:
-        for line in f:
-            match = re.search(rf"{key}\s*=\s*([0-9.eE+-]+)\s*m2", line)
-            if match:
-                return float(match.group(1))
-    return None
-
-
-def extract_last_value_from_adda(file_path: str, key: str) -> Optional[float]:
+def load_engine_config(path: Path) -> Dict[str, Any]:
     """
-    Extract the last Cext value from ADDA output as both polarisations can be
-    computed.
+    Load dda_codes.json.
     """
-    matches = []
-    with open(file_path, "r") as f:
-        for line in f:
-            match = re.search(rf"{key}\s*=\s*([0-9.eE+-]+)", line)
-            if match:
-                matches.append(float(match.group(1)))
-    return matches[-1] if matches else None
+    with path.open("r") as f:
+        return json.load(f)
+
+
+def detect_engine_from_cmd(cmd: str, engines_cfg: Dict[str, Any]) -> str:
+    """
+    Look for any of the 'detect_substrings' of each engine.
+    """
+    for name, cfg in engines_cfg.items():
+        for sub in cfg.get("detect_substrings", []):
+            if sub in cmd:
+                return name
+    raise ValueError(f"Cannot detect engine for command: {cmd}")
+
+
+def read_quantity_from_text_file(
+    output_path: Path,
+    pattern: str,
+    unit_factor: float = 1.0,
+    take_last: bool = False,
+) -> Optional[float]:
+    if not output_path.exists():
+        return None
+
+    text = output_path.read_text()
+
+    match: Optional[re.Match[str]]
+
+    if take_last:
+        matches = list(re.finditer(pattern, text))
+        if not matches:
+            return None
+        match = matches[-1]
+    else:
+        match = re.search(pattern, text)
+
+    if match is None:
+        return None
+
+    value = float(match.group("value"))
+    return value * unit_factor
+
+
+def read_quantity_from_hdf5(
+    output_path: Path, dataset: str, index: Optional[int] = None
+) -> Optional[float]:
+    if not output_path.exists():
+        return None
+    with h5py.File(output_path, "r") as f:
+        data = f[dataset][()]
+    if index is not None:
+        return float(data[index])
+    return float(data)
+
+
+def extract_quantity_for_engine(
+    engine: str,
+    engine_cfg: Dict[str, Any],
+    quantity: str,
+    output_path: Path,
+) -> Optional[float]:
+    """
+    Use the JSON definition for this engine to read the given quantity from
+    the output file.
+    """
+    out_cfg = engine_cfg.get("outputs", {}).get(quantity)
+    if not out_cfg:
+        return None
+
+    out_type = out_cfg.get("type", "text")
+
+    if out_type == "text":
+        pattern = out_cfg["pattern"]
+        unit_factor = out_cfg.get("unit_factor", 1.0)
+        take_last = out_cfg.get("take_last", False)
+        return read_quantity_from_text_file(
+            output_path, pattern, unit_factor, take_last
+        )
+
+    if out_type == "hdf5":
+        dataset = out_cfg["dataset"]
+        index = out_cfg.get("index")
+        return read_quantity_from_hdf5(output_path, dataset, index)
+
+    raise ValueError(f"Unknown output type {out_type} for {engine}/{quantity}")
 
 
 def extract_cpr_from_adda(
-    file_path: str,
+    file_path: Path,
 ) -> Optional[Tuple[float, float, float]]:
-    """Extract the Cpr vector (x, y, z) from ADDA output."""
-    with open(file_path, "r") as f:
-        for line in f:
-            match = re.search(
-                r"Cpr\s*=\s*\(\s*([0-9eE+.\-]+),\s*([0-9eE+.\-]+),"
-                r"\s*([0-9eE+.\-]+)\s*\)",
-                line,
-            )
-            if match:
-                x = float(match.group(1))
-                y = float(match.group(2))
-                z = float(match.group(3))
-                return (x, y, z)
-    return None
+    text = file_path.read_text()
+    pattern = (
+        r"Cpr\s*=\s*\("
+        r"\s*([0-9eE+.\-]+),"
+        r"\s*([0-9eE+.\-]+),"
+        r"\s*([0-9eE+.\-]+)\s*\)"
+    )
+    match = re.search(pattern, text)
+    if not match:
+        return None
+    return (
+        float(match.group(1)),
+        float(match.group(2)),
+        float(match.group(3)),
+    )
 
 
-def extract_force_from_ifdda(file_path: str) -> Optional[float]:
-    """Extract modulus of the optical force in Newtons from IFDDA output."""
-    with open(file_path, "r") as f:
-        for line in f:
-            match = re.search(
-                r"Modulus of the force\s*:\s*([0-9eE+.\-]+)", line
-            )
-            if match:
-                return float(match.group(1))
-    return None
-
-
-def extract_field_norm_from_ifdda(file_path: str) -> Optional[float]:
+def extract_force_from_ifdda(file_path: Path) -> Optional[float]:
     """
-    Extract the normalization constant from the IFDDA output file.
-    Looks for a line like: "Field : (2447309.3783680922,0.0) V/m"
+    Read 'Modulus of the force : <val>' from IFDDA.
     """
-    with open(file_path, "r") as f:
-        for line in f:
-            match = re.search(r"Field\s*:\s*\(\s*([0-9.eE+-]+)", line)
-            if match:
-                return float(match.group(1))
+    text = file_path.read_text()
+    m = re.search(r"Modulus of the force\s*:\s*([0-9eE+.\-]+)", text)
+    if not m:
+        return None
+    return float(m.group(1))
+
+
+def extract_field_norm_from_ifdda(file_path: Path) -> Optional[float]:
+    """
+    Read the normalizing field from IFDDA text:
+    'Field : (2447309.3783,0.0) V/m'
+    """
+    text = file_path.read_text()
+    m = re.search(r"Field\s*:\s*\(\s*([0-9.eE+-]+)", text)
+    if not m:
+        return None
+    return float(m.group(1))
+
+
+def find_adda_internal_field(group_idx: int) -> Optional[Path]:
+    """
+    ADDA writes internal field in runXXX_.../IntField-Y
+    We look for run{group_idx:03d}_*/IntField-Y
+    """
+    pat = f"run{group_idx:03d}_*/IntField-Y"
+    for p in Path(".").glob(pat):
+        return p
     return None
-
-
-def compute_force_from_cpr(
-    cpr: Tuple[float, float, float], norm: float
-) -> float:
-    """Compute force in Newtons from Cpr vector and norm."""
-    epsilon_0 = 8.8541878176e-12
-    fx, fy, fz = (c * norm**2 * epsilon_0 / 2 for c in cpr)
-    return (fx**2 + fy**2 + fz**2) ** 0.5
 
 
 def compute_internal_field_error(
-    ifdda_h5_path: str, adda_csv_path: str, norm: float
+    ifdda_h5_path: Path, adda_csv_path: Path, norm: float
 ) -> Optional[float]:
     """
-    Compute the mean relative error between the squared magnitude of the
-    internal electric field from IFDDA and ADDA.
-    This is literally your function.
+    Compare IFDDA HDF5 near field with ADDA CSV internal field, like before.
     """
     try:
         with h5py.File(ifdda_h5_path, "r") as f:
             macro_modulus = f["Near Field/Macroscopic field modulus"][:]
-        adda_data = pd.read_csv(adda_csv_path, sep=" ")
+        adda_df = pd.read_csv(adda_csv_path, sep=" ")
         valid_ifdda = macro_modulus[macro_modulus != 0] / norm
-        relative_error = (
-            abs((valid_ifdda**2 - adda_data["|E|^2"]) / adda_data["|E|^2"])
+        rel = (
+            abs((valid_ifdda**2 - adda_df["|E|^2"]) / adda_df["|E|^2"])
         ).mean()
-        return relative_error
+        return rel
     except Exception as e:
         logging.error(f"Internal field comparison failed: {e}")
         return None

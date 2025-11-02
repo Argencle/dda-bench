@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 # === Executable paths ===
 ADDA_PATH = "./adda/src/seq/adda"
@@ -13,14 +14,11 @@ CLEAN_OUTPUT = True  # remove ADDA/IFDDA temp stuff at the end
 # === Command files ===
 DEFAULT_COMMAND_FILE_SOLVER = "tests/DDA_commands_solverprecision"
 DEFAULT_COMMAND_FILE_FULL = "tests/DDA_commands_fullprecision"
+DEFAULT_COMMAND_FILE_INTERNALFIELD = "tests/DDA_commands_internalfield"
 
-# === Table column widths ===
-COL_WIDTH_LINE = 4
-COL_WIDTH_MATCH = 10
-COL_WIDTH_FORCE = 11
-COL_WIDTH_INT = 14
-COL_WIDTH_TIME = 7
-COL_WIDTH_MEM = 7
+# === Path ===
+REPO_ROOT = Path(__file__).resolve().parent.parent
+DDA_CODES_JSON = REPO_ROOT / "dda_codes.json"
 
 # === Environment ===
 # Set the number of OpenMP threads for IFDDA (default: 1)

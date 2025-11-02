@@ -1,244 +1,261 @@
-import os
-import sys
-import logging
-from typing import List, Tuple, Optional
-from .config import (
-    COL_WIDTH_LINE,
-    COL_WIDTH_MATCH,
-    COL_WIDTH_FORCE,
-    COL_WIDTH_INT,
-    COL_WIDTH_TIME,
-    COL_WIDTH_MEM,
-    ADDA_PATH,
-    IFDDA_PATH,
-)
-from .commands import parse_command_lines
-from .executors import process_pair
+from typing import List, Tuple, Dict, Any, Optional
+from pathlib import Path
 from .extractors import (
+    detect_engine_from_cmd,
+    extract_quantity_for_engine,
     extract_cpr_from_adda,
     extract_force_from_ifdda,
     extract_field_norm_from_ifdda,
+    find_adda_internal_field,
     compute_internal_field_error,
 )
+from .executors import run_group_command
 from .utils import (
-    find_adda_internal_field,
-    extract_eps_from_adda,
-    convert_to_SI_units,
     compute_rel_err,
     matching_digits_from_rel_err,
-    clean_output_files,
+    extract_eps_from_adda,
 )
 
 
-def build_header(
-    logger: logging.Logger, with_stats: bool, force: bool, int_field: bool
-) -> None:
-    columns = [
-        ("Line", COL_WIDTH_LINE),
-        ("Cext Match", COL_WIDTH_MATCH),
-        ("Cabs Match", COL_WIDTH_MATCH),
-    ]
-    if force:
-        columns.append(("Force Match", COL_WIDTH_FORCE))
-    if int_field:
-        columns.append(("IntField Match", COL_WIDTH_INT))
-    if with_stats:
-        columns.extend(
-            [
-                ("A_CPU", COL_WIDTH_TIME),
-                ("A_MEM", COL_WIDTH_MEM),
-                ("I_CPU", COL_WIDTH_TIME),
-                ("I_MEM", COL_WIDTH_MEM),
-            ]
-        )
+def _group_expected_range(
+    group_cmds: List[Tuple[str, int]],
+    engines_cfg: Dict[str, Any],
+    full_precision: bool,
+) -> Tuple[int, int]:
+    """
+    Decide ONE tolerance range for the WHOLE group.
 
-    header = " | ".join([f"{name:>{width}}" for name, width in columns])
-    separator = "-" * len(header)
-    logger.info(header)
-    logger.info(separator)
+    Priority:
+    1. if full_precision: [11, 16]
+    2. else: if ANY cmd in the group has '-eps N' → [N-1, N+2]
+    3. else: [4, 7]
+    """
+    if full_precision:
+        return 11, 16
+
+    for cmd, _ in group_cmds:
+        eps = extract_eps_from_adda(cmd)
+        if eps is not None:
+            return eps - 1, eps + 2
+
+    # fallback if no -eps was found
+    return 4, 7
 
 
-def compute_force_digits(
-    adda_out_path: str, ifdda_out_path: str, line_parts: List[str]
-) -> Optional[int]:
-    force_match_str = "N/A"
-    digits_force = None
-    adda_cpr = extract_cpr_from_adda(adda_out_path)
-    if adda_cpr:
-        ifdda_force = extract_force_from_ifdda(ifdda_out_path)
-        norm = extract_field_norm_from_ifdda(ifdda_out_path)
-        if norm and ifdda_force:
-            epsilon_0 = 8.8541878176e-12
-            fx, fy, fz = (c * norm**2 * epsilon_0 / 2 for c in adda_cpr)
-            adda_force = (fx**2 + fy**2 + fz**2) ** 0.5
-            adda_force = convert_to_SI_units(adda_force)
-            force_rel_err = compute_rel_err(ifdda_force, adda_force)
-            digits_force = matching_digits_from_rel_err(force_rel_err)
-            force_match_str = f"{digits_force}"
-    line_parts.append(f"{force_match_str:>{COL_WIDTH_FORCE}}")
-    return digits_force
-
-
-def compute_internal_field_digits(
-    index: int, ifdda_out_path: str, ifdda_h5_path: str, line_parts: List[str]
-) -> Optional[int]:
-    int_field_err_str = "N/A"
-    digits_int = None
-    adda_field_path = find_adda_internal_field(index)
-    if adda_field_path:
-        norm = extract_field_norm_from_ifdda(ifdda_out_path)
-        if norm:
-            int_field_error = compute_internal_field_error(
-                ifdda_h5_path, adda_field_path, norm
-            )
-            digits_int = matching_digits_from_rel_err(int_field_error)
-            int_field_err_str = f"{digits_int}"
-    line_parts.append(f"{int_field_err_str:>{COL_WIDTH_INT}}")
-    return digits_int
-
-
-def update_minimum_matching(
-    match: Optional[int],
-    line_number: int,
-    current_min: int,
-    lines: List[int],
-    errors: List[int],
-) -> Tuple[int, List[int], List[int]]:
-    if match is not None:
-        if match < current_min:
-            return match, [line_number], [match]
-        elif match == current_min:
-            lines.append(line_number)
-            errors.append(match)
-    return current_min, lines, errors
-
-
-def process_all_pairs(
-    command_pairs: List[Tuple[Tuple[str, str], int]],
+def process_all_groups(
+    groups: List[List[Tuple[str, int]]],
+    engines_cfg: Dict[str, Any],
     output_dir: str,
-    logger: logging.Logger,
-    with_stats: bool = True,
-    force: bool = True,
-    int_field: bool = True,
-    full_precision: bool = False,
-    check: bool = True,
-) -> None:
+    logger,
+    quantities: List[str],
+    with_stats: bool,
+    check: bool,
+    full_precision: bool,
+) -> bool:
+    all_ok = True
+    for group_idx, group_cmds in enumerate(groups):
+        ok = process_one_group(
+            group_cmds=group_cmds,
+            group_idx=group_idx,
+            engines_cfg=engines_cfg,
+            output_dir=output_dir,
+            logger=logger,
+            quantities=quantities,
+            with_stats=with_stats,
+            check=check,
+            full_precision=full_precision,
+        )
+        if not ok:
+            all_ok = False
+    return all_ok
+
+
+def process_one_group(
+    group_cmds: List[Tuple[str, int]],
+    group_idx: int,
+    engines_cfg: Dict[str, Any],
+    output_dir: str,
+    logger,
+    quantities: List[str],
+    with_stats: bool,
+    check: bool,
+    full_precision: bool,
+) -> bool:
     """
-    Run all command pairs and print a formatted summary of Cext and Cabs values
-    and performance metrics. And also the minimum number of matching digits
-    and the list of line numbers where this minimum occurs.
+    General, engine-agnostic:
+    - run all commands of the group
+    - read the quantities declared in JSON for each engine
+    - compare every pair of engines on those quantities
+    - use ONE tolerance range for the whole group (like your old script)
     """
-    min_match_cext = 999
-    min_lines: List[int] = []
-    min_rel_errors: List[int] = []
+    # 0) decide group tolerance
+    group_min, group_max = _group_expected_range(
+        group_cmds, engines_cfg, full_precision
+    )
 
-    failed_lines: List[int] = []
+    # 1) run all commands
+    per_engine_values: Dict[str, Dict[str, float]] = {}
+    per_engine_stats: Dict[str, Tuple[Optional[float], Optional[int]]] = {}
+    per_engine_files: Dict[str, List[Path]] = {}
 
-    for i, ((adda_line, ifdda_line), line_number) in enumerate(command_pairs):
-        adda_args = parse_command_lines(adda_line, "adda")
-        ifdda_args = parse_command_lines(ifdda_line, "ifdda")
-
-        adda_cmd = f"{ADDA_PATH} {adda_args}"
-        ifdda_cmd = f"{IFDDA_PATH} {ifdda_args}"
-
-        (
-            match_cext,
-            match_cabs,
-            (adda_time, adda_mem),
-            (ifdda_time, ifdda_mem),
-        ) = process_pair(adda_cmd, ifdda_cmd, i, output_dir, with_stats)
-
-        min_match_cext, min_lines, min_rel_errors = update_minimum_matching(
-            match_cext, line_number, min_match_cext, min_lines, min_rel_errors
+    for cmd_idx, (cmd, lineno) in enumerate(group_cmds):
+        engine = detect_engine_from_cmd(cmd, engines_cfg)
+        out_path, cpu_time, mem = run_group_command(
+            cmd=cmd,
+            engine=engine,
+            group_idx=group_idx,
+            cmd_idx=cmd_idx,
+            output_dir=output_dir,
+            with_stats=with_stats,
         )
+        per_engine_stats[engine] = (cpu_time, mem)
+        per_engine_files.setdefault(engine, []).append(out_path)
 
-        match_cext_str = (
-            f"{match_cext}" if match_cext is not None else f"{'N/A':>11}"
-        )
-        match_cabs_str = (
-            f"{match_cabs}" if match_cabs is not None else f"{'N/A':>11}"
-        )
+        engine_cfg = engines_cfg.get(engine, {})
+        per_engine_values.setdefault(engine, {})
+        for q in quantities:
+            val = extract_quantity_for_engine(engine, engine_cfg, q, out_path)
+            if val is not None:
+                per_engine_values[engine][q] = val
 
-        # Build the line in parts
-        line_parts = [
-            f"{line_number:>{COL_WIDTH_LINE}}",
-            f"{match_cext_str:>{COL_WIDTH_MATCH}}",
-            f"{match_cabs_str:>{COL_WIDTH_MATCH}}",
-        ]
+    engines_in_group = list(per_engine_values.keys())
+    group_failed = False
 
-        line_id = 12 + 3 * i
-        adda_out_path = os.path.join(output_dir, f"line_{line_id}_adda.txt")
-        ifdda_out_path = os.path.join(output_dir, f"line_{line_id}_ifdda.txt")
-        ifdda_h5_path = "ifdda.h5"
+    # 2) pairwise compare
+    for i in range(len(engines_in_group)):
+        for j in range(i + 1, len(engines_in_group)):
+            eng_i = engines_in_group[i]
+            eng_j = engines_in_group[j]
 
-        if force:
-            match_force = compute_force_digits(
-                adda_out_path, ifdda_out_path, line_parts
-            )
+            line_parts = [
+                f"group {group_idx:03d}",
+                f"{eng_i:>8s}",
+                f"{eng_j:>8s}",
+            ]
 
-        if int_field:
-            match_int_field = compute_internal_field_digits(
-                i, ifdda_out_path, ifdda_h5_path, line_parts
-            )
+            pair_failed = False
 
-        if with_stats:
-            line_parts.extend(
-                [
-                    f"{(adda_time or 0):>{COL_WIDTH_TIME}.2f}",
-                    f"{(adda_mem or 0) / 1024:>{COL_WIDTH_MEM}.2f}",
-                    f"{(ifdda_time or 0):>{COL_WIDTH_TIME}.2f}",
-                    f"{(ifdda_mem or 0) / 1024:>{COL_WIDTH_MEM}.2f}",
-                ]
-            )
+            for q in quantities:
+                if q == "residual1":
+                    v_i = per_engine_values.get(eng_i, {}).get(q)
+                    v_j = per_engine_values.get(eng_j, {}).get(q)
+                    if v_i is None or v_j is None:
+                        line_parts.append(f"{q}:N/A")
+                        continue
+                    rel = compute_rel_err(v_i, v_j)
+                    digits = matching_digits_from_rel_err(rel)
+                    # show it, but don't fail
+                    line_parts.append(
+                        f"{q}:{digits if digits is not None else 'N/A'}❌"
+                    )
+                    continue
 
-        # Join line
-        line_str = " | ".join(line_parts)
+                if q == "int_field" and {"adda", "ifdda"} <= {eng_i, eng_j}:
+                    # ADDA CSV
+                    adda_csv = find_adda_internal_field(group_idx)
+                    # IFDDA HDF5
+                    ifdda_h5 = Path("ifdda.h5")
+                    # IFDDA text output (to grab the norm)
+                    ifdda_files = per_engine_files.get("ifdda", [])
+                    ifdda_out = ifdda_files[0] if ifdda_files else None
 
-        if full_precision:
-            min_digits = 11
-            max_digits = 16
-        else:
-            eps = extract_eps_from_adda(adda_args, line_id, logger)
-            min_digits = eps - 1
-            max_digits = eps + 2
+                    if (
+                        adda_csv
+                        and ifdda_h5.exists()
+                        and ifdda_out
+                        and ifdda_out.exists()
+                    ):
+                        norm = extract_field_norm_from_ifdda(ifdda_out)
+                        if norm:
+                            rel = compute_internal_field_error(
+                                ifdda_h5, adda_csv, norm
+                            )
+                            digits = matching_digits_from_rel_err(rel)
+                            if digits is None or digits < group_min:
+                                line_parts.append(
+                                    f"{q}:{
+                                        digits if digits is not None else 'N/A'
+                                        }❌"
+                                )
+                                pair_failed = True
+                            else:
+                                line_parts.append(f"{q}:{digits}")
+                            continue
+                    line_parts.append(f"{q}:N/A")
+                    continue
 
-        # Decide if this line fails
-        should_highlight = (
-            (
-                match_cext is not None
-                and not (min_digits <= match_cext <= max_digits)
-            )
-            or (
-                force
-                and match_force
-                and not (min_digits <= match_force <= max_digits)
-            )
-            or (
-                int_field
-                and match_int_field
-                and not (min_digits <= match_int_field <= max_digits)
-            )
-        )
+                if q == "force" and {"adda", "ifdda"} <= {eng_i, eng_j}:
+                    adda_files = per_engine_files.get("adda", [])
+                    ifdda_files = per_engine_files.get("ifdda", [])
+                    adda_out = adda_files[0] if adda_files else None
+                    ifdda_out = ifdda_files[0] if ifdda_files else None
 
-        if should_highlight:
-            if check:
-                failed_lines.append(line_number)
-            logger.error(line_str)
-        else:
-            logger.info(line_str)
+                    if (
+                        adda_out
+                        and adda_out.exists()
+                        and ifdda_out
+                        and ifdda_out.exists()
+                    ):
+                        cpr = extract_cpr_from_adda(adda_out)
+                        ifdda_force = extract_force_from_ifdda(ifdda_out)
+                        norm = extract_field_norm_from_ifdda(ifdda_out)
+                        if cpr and ifdda_force and norm:
+                            eps0 = 8.8541878176e-12
+                            fx, fy, fz = (c * norm**2 * eps0 / 2 for c in cpr)
+                            adda_force = (fx**2 + fy**2 + fz**2) ** 0.5
+                            rel = compute_rel_err(ifdda_force, adda_force)
+                            digits = matching_digits_from_rel_err(rel)
+                            if digits is None or digits < group_min:
+                                line_parts.append(
+                                    f"{q}:{
+                                        digits if digits is not None else 'N/A'
+                                        }❌"
+                                )
+                                pair_failed = True
+                            else:
+                                line_parts.append(f"{q}:{digits}")
+                            continue
+                    line_parts.append(f"{q}:N/A")
+                    continue
 
-    if check:
-        if failed_lines:
-            logger.error(
-                f"{len(failed_lines)} test(s) failed at lines: "
-                f"{', '.join(map(str, failed_lines))}"
-            )
-            clean_output_files()
-            sys.exit(1)
-        else:
-            logger.info("All tests passed.")
-    else:
-        logger.info(
-            f"Minimum number of matching digits for Cext: {min_match_cext}"
-        )
-        logger.info(f"Occurred at line(s): {', '.join(map(str, min_lines))}")
+                v_i = per_engine_values.get(eng_i, {}).get(q)
+                v_j = per_engine_values.get(eng_j, {}).get(q)
+
+                if v_i is None or v_j is None:
+                    line_parts.append(f"{q}:N/A")
+                    continue
+
+                rel = compute_rel_err(v_i, v_j)
+                digits = matching_digits_from_rel_err(rel)
+
+                if digits is None:
+                    line_parts.append(f"{q}:N/A")
+                    pair_failed = True
+                    continue
+
+                out_of_range = digits < group_min or digits > group_max
+
+                if out_of_range:
+                    line_parts.append(f"{q}:{digits}❌")
+                    pair_failed = True
+                else:
+                    line_parts.append(f"{q}:{digits}")
+
+            # stats
+            if with_stats:
+                cpu_i, mem_i = per_engine_stats.get(eng_i, (0.0, 0))
+                cpu_j, mem_j = per_engine_stats.get(eng_j, (0.0, 0))
+                line_parts.append(f"CPU_i={cpu_i or 0:.2f}s")
+                line_parts.append(f"MEM_i={(mem_i or 0)/1024:.2f}MB")
+                line_parts.append(f"CPU_j={cpu_j or 0:.2f}s")
+                line_parts.append(f"MEM_j={(mem_j or 0)/1024:.2f}MB")
+
+            line_str = " | ".join(line_parts)
+
+            if pair_failed:
+                group_failed = True
+                logger.error(line_str)
+            else:
+                logger.info(line_str)
+
+    return not group_failed

@@ -6,9 +6,12 @@ from dda_bench.config import (
     CLEAN_OUTPUT,
     DEFAULT_COMMAND_FILE_SOLVER,
     DEFAULT_COMMAND_FILE_FULL,
+    DEFAULT_COMMAND_FILE_INTERNALFIELD,
+    DDA_CODES_JSON,
 )
-from dda_bench.commands import read_command_pairs
-from dda_bench.reporters import build_header, process_all_pairs
+from dda_bench.commands import read_command_groups
+from dda_bench.extractors import load_engine_config
+from dda_bench.reporters import process_all_groups
 from dda_bench.utils import clean_output_files
 
 
@@ -37,14 +40,14 @@ def build_logger(check: bool) -> logging.Logger:
     return logger
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
-        description="Compare ADDA and IFDDA Cext and Cabs results."
+        description="Run groups of DDA commands and compare digits."
     )
     parser.add_argument(
         "--with-stats",
         action="store_true",
-        help="Enable /usr/bin/time measurements",
+        help="Enable /usr/bin/time measurements.",
     )
     parser.add_argument(
         "-fp",
@@ -76,25 +79,36 @@ def main():
         DEFAULT_COMMAND_FILE_FULL if args.full else DEFAULT_COMMAND_FILE_SOLVER
     )
 
+    quantities = ["Cext", "Cabs", "residual1", "Qext", "Qabs"]
+    if args.force:
+        quantities.append("force")
+    if args.int_field:
+        command_file = DEFAULT_COMMAND_FILE_INTERNALFIELD
+        quantities.append("int_field")
+
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-    command_pairs = read_command_pairs(command_file)
+
+    engines_cfg = load_engine_config(DDA_CODES_JSON)
+    groups = read_command_groups(command_file)
 
     logger = build_logger(args.check)
-    build_header(logger, args.with_stats, args.force, args.int_field)
 
-    process_all_pairs(
-        command_pairs,
-        OUTPUT_DIR,
+    ok = process_all_groups(
+        groups=groups,
+        engines_cfg=engines_cfg,
+        output_dir=OUTPUT_DIR,
         logger=logger,
+        quantities=quantities,
         with_stats=args.with_stats,
-        force=args.force,
-        int_field=args.int_field,
-        full_precision=args.full,
         check=args.check,
+        full_precision=args.full,
     )
 
     if CLEAN_OUTPUT:
         clean_output_files()
+
+    if args.check and not ok:
+        raise SystemExit(1)
 
 
 if __name__ == "__main__":

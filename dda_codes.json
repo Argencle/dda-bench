@@ -1,0 +1,63 @@
+{
+  "ifdda": {
+    "detect_substrings": ["ifdda"],
+    "outputs": {
+      "Cext": {
+        "type": "text",
+        "pattern": "Cext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "Cabs": {
+        "type": "text",
+        "pattern": "Cabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "(?m)^\\s*RESIDU[E]?:?\\s+(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "force": {
+        "type": "text",
+        "pattern": "Modulus of the force\\s*:\\s*(?P<value>[0-9eE+\\.-]+)",
+        "unit_factor": 1.0
+      }
+    }
+  },
+
+  "adda": {
+    "detect_substrings": ["adda"],
+    "outputs": {
+      "Cext": {
+        "type": "text",
+        "pattern": "Cext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "Cabs": {
+        "type": "text",
+        "pattern": "Cabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "Qext": {
+        "type": "text",
+        "pattern": "Qext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "Qabs": {
+        "type": "text",
+        "pattern": "Qabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "RE_001\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
+      }
+    }
+  }
+}

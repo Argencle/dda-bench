@@ -1,27 +1,31 @@
 from typing import List, Tuple
 
 
-def read_command_pairs(command_file: str) -> List[Tuple[Tuple[str, str], int]]:
+def read_command_groups(
+    command_file: str,
+) -> List[List[Tuple[str, int]]]:
     """
-    Read command-lines from an input file and return them with the line number
-    of the first command in each pair.
+    Read the file and return a list of groups.
+    A group = consecutive non-empty, non-# lines.
+    A blank line or '# ...' starts a new group.
     """
-    lines = []
-    line_indices = []
+    groups: List[List[Tuple[str, int]]] = []
+    current: List[Tuple[str, int]] = []
+
     with open(command_file, "r") as f:
-        for idx, line in enumerate(f, start=1):
+        for lineno, line in enumerate(f, start=1):
             stripped = line.strip()
-            if stripped and not stripped.startswith("#"):
-                lines.append(stripped)
-                line_indices.append(idx)
+            if not stripped or stripped.startswith("#"):
+                if current:
+                    groups.append(current)
+                    current = []
+                continue
+            current.append((stripped, lineno))
 
-    if len(lines) % 2 != 0:
-        raise ValueError("Command file must have an even number of lines.")
+    if current:
+        groups.append(current)
 
-    return [
-        ((lines[i], lines[i + 1]), line_indices[i])
-        for i in range(0, len(lines), 2)
-    ]
+    return groups
 
 
 def parse_command_lines(line: str, prefixe: str) -> str:
