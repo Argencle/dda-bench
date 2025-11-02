@@ -59,5 +59,27 @@
         "take_last": true
       }
     }
+  },
+
+  "ddscat": {
+    "detect_substrings": ["ddscatcli"],
+    "extra_files": ["ddscat7.3.4_250505/RCTGLPRSM/ddscat.log_000"],
+    "outputs": {
+      "Qext": {
+        "type": "text",
+        "pattern": "Q_ext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12
+      },
+      "Qabs": {
+        "type": "text",
+        "pattern": "Q_abs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "frac.err\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      }
+    }
   }
 }

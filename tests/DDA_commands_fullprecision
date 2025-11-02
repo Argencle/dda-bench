@@ -56,3 +56,7 @@ ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -tolinit 1.d-12 -polariza
 #----------Inhomogeneous sphere in a vacuum cube with eps=12----------#
 adda -lambda 0.5 -shape spherebox 1 -size 0.2 -iter qmr -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 12 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-12 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 0 1
+#----------paper cli test----------#
+ifdda -object cube 2387.3241463784303 -lambda 500 -epsmulti 1.7239689999999999 0.0 -ninitest 0 -nnnr 50 -tolinit 1.d-4 -methodeit BICGSTAB -polarizability FG
+adda -shape box 1 1 -size 2.3873241463784303 -lambda 0.5 -m 1.313 0.0 -init_field zero -grid 50 -eps 4 -iter bicgstab -pol fcd -int fcd -scat dr -ntheta 10
+ddscatcli -CSHAPE RCTGLPRSM -AEFF "1.4809777061418503 1.4809777061418503 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "../diel/m1.313_0.00" -MEM_ALLOW "50 50 50" -SHPAR "50 50 50" -TOL 1.00e-4 -CMDSOL PBCGST -CALPHA FLTRCD -ETASCA 10 -IORTH 1 -NPLANES 0 -NRFLD 0 -run

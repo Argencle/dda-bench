@@ -4,7 +4,7 @@ import logging
 import h5py
 import pandas as pd
 from pathlib import Path
-from typing import Tuple, Optional, Dict, Any
+from typing import Tuple, Optional, Dict, Any, List
 
 
 def load_engine_config(path: Path) -> Dict[str, Any]:
@@ -70,32 +70,47 @@ def extract_quantity_for_engine(
     engine: str,
     engine_cfg: Dict[str, Any],
     quantity: str,
-    output_path: Path,
+    main_output: Path,
 ) -> Optional[float]:
     """
-    Use the JSON definition for this engine to read the given quantity from
-    the output file.
+    Try to read a quantity for this engine.
+    1) from the main output file
+    2) if not found, from any extra file patterns in JSON
+       (e.g. ddscat_*.log)
     """
-    out_cfg = engine_cfg.get("outputs", {}).get(quantity)
-    if not out_cfg:
+    outputs = engine_cfg.get("outputs", {})
+    spec = outputs.get(quantity)
+    if not spec:
         return None
 
-    out_type = out_cfg.get("type", "text")
+    pattern = spec["pattern"]
+    unit_factor = spec.get("unit_factor", 1.0)
+    take_last = spec.get("take_last", False)
 
-    if out_type == "text":
-        pattern = out_cfg["pattern"]
-        unit_factor = out_cfg.get("unit_factor", 1.0)
-        take_last = out_cfg.get("take_last", False)
-        return read_quantity_from_text_file(
-            output_path, pattern, unit_factor, take_last
-        )
+    # 1) try main file
+    val = read_quantity_from_text_file(
+        main_output,
+        pattern,
+        unit_factor=unit_factor,
+        take_last=take_last,
+    )
+    if val is not None:
+        return val
 
-    if out_type == "hdf5":
-        dataset = out_cfg["dataset"]
-        index = out_cfg.get("index")
-        return read_quantity_from_hdf5(output_path, dataset, index)
+    # 2) try extra files
+    extra_patterns: List[str] = engine_cfg.get("extra_files", [])
+    for extra_pat in extra_patterns:
+        for extra_path in Path(".").glob(extra_pat):
+            val = read_quantity_from_text_file(
+                extra_path,
+                pattern,
+                unit_factor=unit_factor,
+                take_last=take_last,
+            )
+            if val is not None:
+                return val
 
-    raise ValueError(f"Unknown output type {out_type} for {engine}/{quantity}")
+    return None
 
 
 def extract_cpr_from_adda(
