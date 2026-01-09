@@ -21,7 +21,7 @@ def matching_digits_from_rel_err(
 ) -> Optional[int]:
     if rel_err is None or rel_err <= 0:
         return None
-    return int(-math.log10(rel_err))
+    return int(-math.log10(rel_err))  # int guarante at least this many digits
 
 
 def extract_eps_from_adda(cmd: str) -> Optional[int]:

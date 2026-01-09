@@ -173,9 +173,7 @@ def process_one_group(
                             digits = matching_digits_from_rel_err(rel)
                             if digits is None or digits < group_min:
                                 line_parts.append(
-                                    f"{q}:{
-                                        digits if digits is not None else 'N/A'
-                                        }❌"
+                                    f"{q}:{digits if digits is not None else 'N/A'}❌"
                                 )
                                 pair_failed = True
                             else:
@@ -207,9 +205,7 @@ def process_one_group(
                             digits = matching_digits_from_rel_err(rel)
                             if digits is None or digits < group_min:
                                 line_parts.append(
-                                    f"{q}:{
-                                        digits if digits is not None else 'N/A'
-                                        }❌"
+                                    f"{q}:{digits if digits is not None else 'N/A'}❌"
                                 )
                                 pair_failed = True
                             else:

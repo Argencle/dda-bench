@@ -100,7 +100,15 @@ def extract_quantity_for_engine(
     # 2) try extra files
     extra_patterns: List[str] = engine_cfg.get("extra_files", [])
     for extra_pat in extra_patterns:
-        for extra_path in Path(".").glob(extra_pat):
+        pat_path = Path(extra_pat)
+
+        if pat_path.is_absolute():
+            # absolute path: treat as a single file
+            candidate_paths = [pat_path]
+        else:
+            # relative / glob pattern: keep existing behaviour
+            candidate_paths = Path(".").glob(extra_pat)
+        for extra_path in candidate_paths:
             val = read_quantity_from_text_file(
                 extra_path,
                 pattern,
