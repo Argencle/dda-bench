@@ -183,6 +183,7 @@ def compute_internal_field_error(
     """
     try:
         with h5py.File(ifdda_h5_path, "r") as f:
+            # print(list(f["Near Field"].keys()))
             macro_modulus = f["Near Field/Macroscopic field modulus"][:]
         adda_df = pd.read_csv(adda_csv_path, sep=" ")
         valid_ifdda = macro_modulus[macro_modulus != 0] / norm

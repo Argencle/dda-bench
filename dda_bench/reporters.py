@@ -196,9 +196,12 @@ def process_one_group(
                     ):
                         cpr = extract_cpr_from_adda(adda_out)
                         ifdda_force = extract_force_from_ifdda(ifdda_out)
+                        ifdda_force = (
+                            ifdda_force * 1e12 if ifdda_force else None
+                        )
                         norm = extract_field_norm_from_ifdda(ifdda_out)
                         if cpr and ifdda_force and norm:
-                            eps0 = 8.8541878176e-12
+                            eps0 = 8.854187817620389e-12
                             fx, fy, fz = (c * norm**2 * eps0 / 2 for c in cpr)
                             adda_force = (fx**2 + fy**2 + fz**2) ** 0.5
                             rel = compute_rel_err(ifdda_force, adda_force)
