@@ -21,37 +21,37 @@ ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolin
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol dgf -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability GB -nnnr 16 -ninitest 0
 #----------Filtered Coupled Dipoles----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr
-ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0
-ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -run
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 1 0 0
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -prop 90 0
+ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 #----------Isotropized Lattice Dispersion Relation----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr avgpol -grid 16 -init_field zero -no_vol_cor -prop 0.8506508083520399 0 0.5257311121191336 -sym enf -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LR -nnnr 16 -ninitest 0 -prop 58.282525588538995 0.0
 #----------Classic Lattice Dispersion Relation----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr
-ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0
-ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -run
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
+ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 #----------Integrated Green's Tensor----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -int igt 1 -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -igt 1
 #----------Bi-conjugate gradient stabilized----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr
-ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0
-ddscatcli -CMDSOL PBCGST -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
+adda -lambda 0.5 -shape sphere -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
+ddscatcli -CMDSOL PBCGST -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 #---------- Enhanced Bi-CGStab(2) ----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter bcgs2 -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr
-ddscatcli -CMDSOL PBCGS2 -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
+adda -lambda 0.5 -shape sphere -size 0.2 -iter bcgs2 -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
+ddscatcli -CMDSOL PBCGS2 -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 #----------Generalized Product Bi-Conjugate Gradient----------#
-ifdda -lambda 500 -object sphere 99.5540512465 -methodeit GPBICG1 -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0
-ddscatcli -CMDSOL GPBICG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit GPBICG1 -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
+ddscatcli -CMDSOL GPBICG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 #----------Cube----------#
 adda -lambda 0.5 -shape box 1 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr
 ifdda -lambda 500 -object cube 200 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
 ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.12407009817988003 0.12407009817988003 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "16 16 16" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -NRFLD 0 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 #----------Cuboid----------#
-adda -lambda 0.5 -shape box 1 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr
-ifdda -lambda 500 -object cuboid1 200 200 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
-ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.09847450218426967 0.09847450218426967 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 8" -SHPAR "16 16 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
+adda -lambda 0.5 -shape box 1 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf -scat_matr none
+ifdda -lambda 500 -object cuboid1 200 200 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0
+ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.09847450218426967 0.09847450218426967 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 8" -SHPAR "16 16 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 #----------Cylinder (both polarizations)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
@@ -103,5 +103,5 @@ adda -lambda 0.5 -shape spherebox 1 -size 0.2 -iter qmr -m 1.000000000000001 0.0
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-12 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 0 1
 
 #
-ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "16 16 16" -CSHAPE ELLIPSOID -SHPAR "16 16 16" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
-ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "16 16 16" -CSHAPE ELLIPSOID -SHPAR "16 16 16" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -ROT_BETA "90 90 1" -ROT_THETA "90 90 1" -ROT_PHI "90 90 1" -NRFLD 0 -run
+ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "16 16 16" -CSHAPE ELLIPSOID -SHPAR "16 16 16" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
+ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "16 16 16" -CSHAPE ELLIPSOID -SHPAR "16 16 16" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
