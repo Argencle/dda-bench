@@ -63,7 +63,7 @@
 
   "ddscat": {
     "detect_substrings": ["ddscatcli"],
-    "extra_files": ["/home/argentic@coria.fr/Bureau/Work/Data_DDA_benchmark_paper/ddscat7.3.4_250505/ddscat.log_000"],
+    "extra_files": ["bin/ddscat.log_000"],
     "outputs": {
       "Qext": {
         "type": "text",

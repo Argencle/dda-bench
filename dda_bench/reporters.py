@@ -100,9 +100,11 @@ def process_one_group(
 
     for cmd_idx, (cmd, lineno) in enumerate(group_cmds):
         engine = detect_engine_from_cmd(cmd, engines_cfg)
+        engine_cfg = engines_cfg.get(engine, {})
         out_path, cpu_time, mem = run_group_command(
             cmd=cmd,
             engine=engine,
+            engine_cfg=engine_cfg,
             group_idx=group_idx,
             cmd_idx=cmd_idx,
             output_dir=output_dir,
@@ -111,7 +113,6 @@ def process_one_group(
         per_engine_stats[engine] = (cpu_time, mem)
         per_engine_files.setdefault(engine, []).append(out_path)
 
-        engine_cfg = engines_cfg.get(engine, {})
         per_engine_values.setdefault(engine, {})
         for q in quantities:
             val = extract_quantity_for_engine(engine, engine_cfg, q, out_path)

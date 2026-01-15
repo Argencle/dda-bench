@@ -40,6 +40,31 @@ def clean_output_files() -> None:
     for path in Path(".").glob("run*"):
         if path.is_dir():
             shutil.rmtree(path)
-    for fname in ["ExpCount", "inputmatlab.mat", "filenameh5", "ifdda.h5"]:
+    for fname in [
+        "ExpCount",
+        "inputmatlab.mat",
+        "filenameh5",
+        "ifdda.h5",
+    ]:
         if os.path.exists(fname):
             os.remove(fname)
+
+    for pattern in ["ddscat.par.bak*"]:
+        for path in Path(".").glob(pattern):
+            if path.is_file():
+                path.unlink()
+
+    bin_patterns = [
+        "ddscat.log_*",
+        "mtable",
+        "qtable",
+        "qtable2",
+        "w*.avg",
+        "target.out",
+        "ExpCount",
+        "ddscat.par.bak*",
+    ]
+    for pattern in bin_patterns:
+        for path in Path("bin").glob(pattern):
+            if path.is_file():
+                path.unlink()

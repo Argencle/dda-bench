@@ -2,13 +2,11 @@ import os
 from pathlib import Path
 
 # === Executable paths ===
-ADDA_PATH = "/home/argentic@coria.fr/Bureau/Work/Data_DDA_benchmark_paper/adda/src/seq/adda"
-IFDDA_PATH = "/home/argentic@coria.fr/Bureau/Work/Data_DDA_benchmark_paper/if-dda/tests/test_command/ifdda"
-os.environ["DDSCAT_PAR"] = (
-    "/home/argentic@coria.fr/Bureau/Work/Data_DDA_benchmark_paper/ddscat7.3.4_250505/ddscat.par"
-)
+ADDA_PATH = "bin/adda"
+IFDDA_PATH = "bin/ifdda"
+os.environ["DDSCAT_PAR"] = "bin/ddscat.par"
 os.environ["DDSCAT_EXE"] = (
-    "/home/argentic@coria.fr/Bureau/Work/Data_DDA_benchmark_paper/ddscat7.3.4_250505/src/ddscat"
+    "/home/argentic@coria.fr/Bureau/Work/dda-bench/bin/ddscat"  # Absolute path to ddscat executable
 )
 
 # To enable MPI parallel execution with ADDA, replace the ADDA_PATH as follows:

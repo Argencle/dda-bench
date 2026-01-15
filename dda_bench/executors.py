@@ -1,6 +1,7 @@
 import subprocess
+import shutil
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Dict, Any, List
 
 from .config import ADDA_PATH, IFDDA_PATH
 from .commands import parse_command_lines
@@ -46,9 +47,33 @@ def run_command_with_stats(
         return None, None
 
 
+def _copy_extra_files(engine_cfg: Dict[str, Any], output_path: Path) -> None:
+    extra_patterns: List[str] = engine_cfg.get("extra_files", [])
+    if not extra_patterns:
+        return
+
+    extra_idx = 0
+    for extra_pat in extra_patterns:
+        pat_path = Path(extra_pat)
+        if pat_path.is_absolute():
+            candidate_paths = [pat_path]
+        else:
+            candidate_paths = Path(".").glob(extra_pat)
+
+        for extra_path in candidate_paths:
+            if not extra_path.exists():
+                continue
+            dest = output_path.with_name(
+                f"{output_path.stem}_extra_{extra_idx:02d}_{extra_path.name}"
+            )
+            shutil.copyfile(extra_path, dest)
+            extra_idx += 1
+
+
 def run_group_command(
     cmd: str,
     engine: str,
+    engine_cfg: Dict[str, Any],
     group_idx: int,
     cmd_idx: int,
     output_dir: str,
@@ -59,4 +84,5 @@ def run_group_command(
     )
     real_cmd = build_real_command(cmd, engine)
     cpu_time, mem = run_command_with_stats(real_cmd, output_path, with_stats)
+    _copy_extra_files(engine_cfg, output_path)
     return output_path, cpu_time, mem
