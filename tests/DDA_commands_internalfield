@@ -9,26 +9,29 @@
 #           IFDDA_PATH = "..."
 # ============================================================================
 #----------Full precision internal field----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2 -nforce 1 1 0 0
+adda -lambda 500 -shape sphere -size 200 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 #----------Solver precision internal field (inhomogeneous)----------#
 adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
-ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 1 1 -save_data 2 -nforce 1 1 0 0
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 1 -save_data 2 -nforce 1 1 0 0
 
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2 -nforce 1 1 0 0
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol lak -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LA -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol lak -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LA -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol dgf -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability GB -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol dgf -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability GB -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 16 -ninitest 0 -near_field 0 1 0 -save_data 2
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr -store_int_field
-ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30 -near_field 0 1 0 -save_data 2
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
+
+adda -lambda 0.5 -shape box 1 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object cube 200 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0

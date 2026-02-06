@@ -63,7 +63,7 @@
 
   "ddscat": {
     "detect_substrings": ["ddscatcli"],
-    "extra_files": ["ddscat7.3.4_250505/RCTGLPRSM/ddscat.log_000"],
+    "extra_files": ["bin/ddscat.log_000"],
     "outputs": {
       "Qext": {
         "type": "text",
@@ -77,7 +77,7 @@
       },
       "residual1": {
         "type": "text",
-        "pattern": "frac.err\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "pattern": "(?:frac\\.err|f\\.err)\\s*=\\s*(?P<value>[0-9.eE+-]+)",
         "unit_factor": 1.0
       }
     }

@@ -100,7 +100,15 @@ def extract_quantity_for_engine(
     # 2) try extra files
     extra_patterns: List[str] = engine_cfg.get("extra_files", [])
     for extra_pat in extra_patterns:
-        for extra_path in Path(".").glob(extra_pat):
+        pat_path = Path(extra_pat)
+
+        if pat_path.is_absolute():
+            # absolute path: treat as a single file
+            candidate_paths = [pat_path]
+        else:
+            # relative / glob pattern: keep existing behaviour
+            candidate_paths = Path(".").glob(extra_pat)
+        for extra_path in candidate_paths:
             val = read_quantity_from_text_file(
                 extra_path,
                 pattern,
@@ -175,6 +183,7 @@ def compute_internal_field_error(
     """
     try:
         with h5py.File(ifdda_h5_path, "r") as f:
+            # print(list(f["Near Field"].keys()))
             macro_modulus = f["Near Field/Macroscopic field modulus"][:]
         adda_df = pd.read_csv(adda_csv_path, sep=" ")
         valid_ifdda = macro_modulus[macro_modulus != 0] / norm

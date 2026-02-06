@@ -10,6 +10,11 @@ __pycache__/
 adda/
 if-dda/
 ddscat*/
+bin/*
+!bin/ddscat.par
+!bin/ddpostprocess.par
+!bin/shape.dat
+!bin/shape_ifdda.dat
 
 # Output files/folders
 output/

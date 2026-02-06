@@ -21,7 +21,7 @@ def matching_digits_from_rel_err(
 ) -> Optional[int]:
     if rel_err is None or rel_err <= 0:
         return None
-    return int(-math.log10(rel_err))
+    return int(-math.log10(rel_err))  # int guarante at least this many digits
 
 
 def extract_eps_from_adda(cmd: str) -> Optional[int]:
@@ -40,6 +40,31 @@ def clean_output_files() -> None:
     for path in Path(".").glob("run*"):
         if path.is_dir():
             shutil.rmtree(path)
-    for fname in ["ExpCount", "inputmatlab.mat", "filenameh5", "ifdda.h5"]:
+    for fname in [
+        "ExpCount",
+        "inputmatlab.mat",
+        "filenameh5",
+        "ifdda.h5",
+    ]:
         if os.path.exists(fname):
             os.remove(fname)
+
+    for pattern in ["ddscat.par.bak*"]:
+        for path in Path(".").glob(pattern):
+            if path.is_file():
+                path.unlink()
+
+    bin_patterns = [
+        "ddscat.log_*",
+        "mtable",
+        "qtable",
+        "qtable2",
+        "w*.avg",
+        "target.out",
+        "ExpCount",
+        "ddscat.par.bak*",
+    ]
+    for pattern in bin_patterns:
+        for path in Path("bin").glob(pattern):
+            if path.is_file():
+                path.unlink()
