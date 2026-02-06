@@ -17,5 +17,5 @@ bin/*
 !bin/shape_ifdda.dat
 
 # Output files/folders
-output/
+outputs/
 *.log

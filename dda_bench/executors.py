@@ -70,17 +70,18 @@ def _copy_extra_files(engine_cfg: Dict[str, Any], output_path: Path) -> None:
             extra_idx += 1
 
 
-def run_group_command(
+def run_case_command(
     cmd: str,
     engine: str,
     engine_cfg: Dict[str, Any],
-    group_idx: int,
+    case_idx: int,
     cmd_idx: int,
     output_dir: str,
     with_stats: bool,
 ) -> Tuple[Path, Optional[float], Optional[int]]:
+    safe_case = str(case_idx).replace("/", "_")
     output_path = (
-        Path(output_dir) / f"group_{group_idx:03d}_{engine}_{cmd_idx:02d}.txt"
+        Path(output_dir) / f"case_{safe_case}_{engine}_{cmd_idx:02d}.txt"
     )
     real_cmd = build_real_command(cmd, engine)
     cpu_time, mem = run_command_with_stats(real_cmd, output_path, with_stats)

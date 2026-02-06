@@ -9,9 +9,9 @@ from dda_bench.config import (
     DEFAULT_COMMAND_FILE_INTERNALFIELD,
     DDA_CODES_JSON,
 )
-from dda_bench.commands import read_command_groups
+from dda_bench.commands import read_command_cases
 from dda_bench.extractors import load_engine_config
-from dda_bench.reporters import process_all_groups
+from dda_bench.reporters import process_all_cases
 from dda_bench.utils import clean_output_files
 
 
@@ -89,12 +89,12 @@ def main() -> None:
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
     engines_cfg = load_engine_config(DDA_CODES_JSON)
-    groups = read_command_groups(command_file)
+    cases = read_command_cases(command_file)
 
     logger = build_logger(args.check)
 
-    ok = process_all_groups(
-        groups=groups,
+    ok = process_all_cases(
+        cases=cases,
         engines_cfg=engines_cfg,
         output_dir=OUTPUT_DIR,
         logger=logger,

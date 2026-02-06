@@ -13,7 +13,7 @@ os.environ["DDSCAT_EXE"] = (
 # ADDA_PATH = "mpirun -np <number_of_processes> ./adda/src/mpi/adda_mpi"
 
 # === Output configuration ===
-OUTPUT_DIR = "output"
+OUTPUT_DIR = "outputs"
 CLEAN_OUTPUT = True  # remove ADDA/IFDDA temp stuff at the end
 
 # === Command files ===
