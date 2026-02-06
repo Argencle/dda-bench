@@ -1,6 +1,12 @@
 {
   "ifdda": {
     "detect_substrings": ["ifdda"],
+    "aeff": {
+      "source": "stdout",
+      "n_dipoles_pattern": "Number of subunit for the object\\s*:\\s*(?P<value>\\d+)",
+      "mesh_size_pattern": "Size of the mesh size\\s*:\\s*(?P<value>[0-9.eE+-]+)",
+      "unit": "meter"
+    },
     "outputs": {
       "Cext": {
         "type": "text",
@@ -43,13 +49,13 @@
       "Qext": {
         "type": "text",
         "pattern": "Qext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1e-12,
+        "unit_factor": 1,
         "take_last": true
       },
       "Qabs": {
         "type": "text",
         "pattern": "Qabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1e-12,
+        "unit_factor": 1,
         "take_last": true
       },
       "residual1": {
@@ -64,16 +70,21 @@
   "ddscat": {
     "detect_substrings": ["ddscatcli"],
     "extra_files": ["ddscat.log_000"],
+    "aeff": {
+      "source": "extra",
+      "pattern": ">\\s*DDSCAT\\s+(?P<value>[0-9.eE+-]+)\\s*=\\s*AEFF",
+      "unit": "micron"
+    },
     "outputs": {
       "Qext": {
         "type": "text",
         "pattern": "Q_ext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1e-12
+        "unit_factor": 1
       },
       "Qabs": {
         "type": "text",
         "pattern": "Q_abs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1e-12
+        "unit_factor": 1
       },
       "residual1": {
         "type": "text",

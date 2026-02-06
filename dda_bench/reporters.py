@@ -1,6 +1,7 @@
+import math
 from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
-
+from .extractors import extract_aeff_meters_for_engine
 from .commands import CommandCase
 from .extractors import (
     detect_engine_from_cmd,
@@ -74,6 +75,22 @@ def process_all_cases(
     return all_ok
 
 
+def _fill_cq(vals: Dict[str, float], aeff_m: float) -> None:
+    area = math.pi * (aeff_m**2)  # m^2
+
+    # ext
+    if "Cext" not in vals and "Qext" in vals:
+        vals["Cext"] = vals["Qext"] * area
+    if "Qext" not in vals and "Cext" in vals and area > 0:
+        vals["Qext"] = vals["Cext"] / area
+
+    # abs
+    if "Cabs" not in vals and "Qabs" in vals:
+        vals["Cabs"] = vals["Qabs"] * area
+    if "Qabs" not in vals and "Cabs" in vals and area > 0:
+        vals["Qabs"] = vals["Cabs"] / area
+
+
 def process_one_case(
     case: CommandCase,
     engines_cfg: Dict[str, Any],
@@ -126,6 +143,33 @@ def process_one_case(
 
     engines_in_case = list(per_engine_values.keys())
     case_failed = False
+
+    # --- Fill missing C<->Q using AEFF (if possible) ---
+    per_engine_aeff: Dict[str, float] = {}
+
+    for eng, files in per_engine_files.items():
+        # choose a representative stdout (first command)
+        stdout0 = files[0] if files else None
+        if not stdout0:
+            continue
+
+        # extra files for that engine: everything in the same dir matching extra_files globs
+        run_dir = stdout0.parent
+        extra_paths: List[Path] = []
+        for pat in engines_cfg.get(eng, {}).get("extra_files", []):
+            extra_paths += list(run_dir.glob(pat))
+
+        aeff_m = extract_aeff_meters_for_engine(
+            eng,
+            engines_cfg.get(eng, {}),
+            stdout_path=stdout0,
+            extra_paths=extra_paths,
+        )
+        if aeff_m:
+            per_engine_aeff[eng] = aeff_m
+
+    for eng, aeff_m in per_engine_aeff.items():
+        _fill_cq(per_engine_values.setdefault(eng, {}), aeff_m)
 
     # 2) pairwise compare
     for i in range(len(engines_in_case)):

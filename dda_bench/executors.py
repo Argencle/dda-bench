@@ -2,7 +2,7 @@ import os
 import subprocess
 import shutil
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Optional, Tuple, Dict, Any
 
 from .config import ADDA_PATH, IFDDA_PATH
 from .commands import parse_command_lines
@@ -39,7 +39,8 @@ def _symlink(src: Path, dst: Path) -> None:
 
 def _maybe_prepare_inputs(engine: str, cmd: str, run_dir: Path) -> None:
     """
-    Create only the needed symlinks/files inside run_dir depending on engine+cmd.
+    Create only the needed symlinks/files inside run_dir
+    depending on engine+cmd.
     """
     repo = REPO_ROOT
 

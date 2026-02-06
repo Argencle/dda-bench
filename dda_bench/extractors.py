@@ -1,6 +1,7 @@
 import json
 import re
 import logging
+import math
 import h5py
 import pandas as pd
 from pathlib import Path
@@ -195,3 +196,73 @@ def compute_internal_field_error(
     except Exception as e:
         logging.error(f"Internal field comparison failed: {e}")
         return None
+
+
+def _to_meters(val: float, unit: str) -> float:
+    u = (unit or "").lower()
+    if u in ("m", "meter", "meters"):
+        return val
+    if u in ("um", "micron", "microns", "µm"):
+        return val * 1e-6
+    if u in ("nm", "nanometer", "nanometers"):
+        return val * 1e-9
+    # fallback: assume already meters
+    return val
+
+
+def _read_first_match(paths: List[Path], pattern: str) -> Optional[float]:
+    rgx = re.compile(pattern)
+    for p in paths:
+        if not p.exists():
+            continue
+        txt = p.read_text(errors="ignore")
+        m = rgx.search(txt)
+        if m:
+            return float(m.group("value"))
+    return None
+
+
+def extract_aeff_meters_for_engine(
+    engine: str,
+    engine_cfg: Dict[str, Any],
+    stdout_path: Path,
+    extra_paths: List[Path],
+) -> Optional[float]:
+    """
+    Returns aeff in meters if it can be obtained from outputs.
+    Supports:
+      - direct aeff in text (ddsCAT logs, etc.)
+      - aeff from N_dipoles + mesh_size (IFDDA-like)
+    """
+    spec = engine_cfg.get("aeff")
+    if not spec:
+        return None
+
+    unit = spec.get("unit", "meter")
+
+    # Case A: direct AEFF pattern
+    if "pattern" in spec:
+        source = spec.get("source", "stdout")
+        paths = [stdout_path] if source == "stdout" else extra_paths
+        val = _read_first_match(paths, spec["pattern"])
+        if val is None:
+            return None
+        return _to_meters(val, unit)
+
+    # Case B: reconstruct from DDA discretization
+    n_pat = spec.get("n_dipoles_pattern")
+    d_pat = spec.get("mesh_size_pattern")
+    if not n_pat or not d_pat:
+        return None
+
+    n = _read_first_match([stdout_path], n_pat)
+    d = _read_first_match([stdout_path], d_pat)
+    if n is None or d is None or n <= 0 or d <= 0:
+        return None
+
+    d_m = _to_meters(d, unit)  # unit refers to mesh size unit here
+
+    # V = N * d^3 ; aeff = (3V/4π)^(1/3)
+    V = float(n) * (d_m**3)
+    aeff = (3.0 * V / (4.0 * math.pi)) ** (1.0 / 3.0)
+    return aeff
