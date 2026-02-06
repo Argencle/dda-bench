@@ -35,7 +35,7 @@ adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.076789
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LR -nnnr 16 -ninitest 0 -prop 58.282525588538995 0.0
 # @case: sphere_ldr_qmr
 #----------Classic Lattice Dispersion Relation----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0 -sym enf
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
 ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: sphere_igt_qmr

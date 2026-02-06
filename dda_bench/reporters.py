@@ -246,17 +246,21 @@ def process_one_case(
             pair_failed = False
 
             for q in quantities:
-                # residuals are displayed but do not fail the case (current behavior)
+                # residuals are displayed but do not fail the case
                 if q == "residual1":
                     v_i = per_engine_values.get(eng_i, {}).get(q)
                     v_j = per_engine_values.get(eng_j, {}).get(q)
                     if v_i is None or v_j is None:
-                        line_parts.append(f"{q:<{QNAME_W}}:N/A")
+                        line_parts.append(f"{q:<{QNAME_W}}:NA")
                         continue
                     rel = compute_rel_err(v_i, v_j)
                     digits = matching_digits_from_rel_err(rel)
+                    if digits is None:
+                        line_parts.append(f"{q:<{QNAME_W}}:NA")
+                        continue
+                    warn = digits < case_min or digits > case_max
                     line_parts.append(
-                        f"{q:<{QNAME_W}}:{digits if digits is not None else 'NA'}❌"
+                        f"{q:<{QNAME_W}}:{digits}{'⚠️' if warn else ''}"
                     )
                     continue
 
@@ -355,7 +359,7 @@ def process_one_case(
                 digits = matching_digits_from_rel_err(rel)
 
                 if digits is None:
-                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                    line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                     pair_failed = True
                     continue
 

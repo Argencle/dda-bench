@@ -8,19 +8,40 @@ from typing import Optional
 def compute_rel_err(
     val1: Optional[float], val2: Optional[float]
 ) -> Optional[float]:
+    """
+    Relative error:
+      rel = |v1 - v2| / max(|v1|, |v2|)
+    """
     if val1 is None or val2 is None:
         return None
-    if val2 == 0:
-        return None
-    return abs(val1 - val2) / abs(val2)
+    den = max(abs(val1), abs(val2))
+    if den == 0.0:
+        return 0.0
+    return abs(val1 - val2) / den
 
 
 def matching_digits_from_rel_err(
     rel_err: Optional[float],
 ) -> Optional[int]:
-    if rel_err is None or rel_err <= 0:
+    """
+    Convert relative error to matching decimal digits.
+    - rel_err == 0 => cap digits (perfect match)
+    - rel_err < 0 or NaN/inf => None
+    """
+    cap: int = 16
+    if rel_err is None:
         return None
-    return int(-math.log10(rel_err))  # int guarante at least this many digits
+    if not math.isfinite(rel_err) or rel_err < 0:
+        return None
+    if rel_err == 0.0:
+        return cap
+
+    d = int(math.floor(-math.log10(rel_err)))
+    if d < 0:
+        d = 0
+    if d > cap:
+        d = cap
+    return d
 
 
 def extract_eps_from_adda(cmd: str) -> Optional[int]:
