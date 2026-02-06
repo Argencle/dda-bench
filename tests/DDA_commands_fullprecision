@@ -64,7 +64,7 @@ ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.12407009817988003 0.12407009817988003 1 'LI
 #----------Cuboid----------#
 adda -lambda 0.5 -shape box 1 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf -scat_matr none
 ifdda -lambda 500 -object cuboid1 200 200 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0
-ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.09847450218426967 0.09847450218426967 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 8" -SHPAR "16 16 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
+ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.09847450218426967 0.09847450218426967 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 8" -SHPAR "16 16 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: cylinder_ldr_qmr_both_pol
 #----------Cylinder (both polarizations)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 
@@ -73,7 +73,7 @@ ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LI
 #----------Cylinder (perpendicular-polarization)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf
 ifdda -lambda 500 -object cylinder 98.8755329116021 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0
-ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -run
+ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: cylinder_ldr_qmr_par_pol
 #----------Cylinder (parallel-polarization)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0
@@ -99,7 +99,7 @@ ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LI
 #----------Ellipsoid (non-symmetric perpendicular-polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf -no_vol_cor
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 90 0
-ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
+ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: ellipsoid_ldr_qmr_par_pol
 #----------Ellipsoid (non-symmetric parallel-polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor
@@ -131,12 +131,12 @@ ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 
 #----------Linear e_x-polarisation direction----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -scat dr
 ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30 -beam pwavelinear 1 1
-# @case: cylinder_ldr_qmr_arbitrary_pol_x_prop
+# @case: ellipsoid_ldr_qmr_arbitrary_pol_x_prop
 #----------Linear arbitrary-polarisation direction with prop along x----------#
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 90 0 -beam pwavelinear 0.2 1
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (0.8944271909999159,0) (-0.4472135954999579,0)" -run
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -orient 90 26.56505117707799 -90 -sym enf
-# @case: cylinder_ldr_qmr_arbitrary_pol_z_prop
+# @case: ellipsoid_ldr_qmr_arbitrary_pol_z_prop
 #----------Linear arbitrary-polarisation direction with prop along z----------#
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 0 0 -beam pwavelinear 0.2 1
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 0 0 1 -no_vol_cor -orient 0 0 26.56505117707799 -sym enf

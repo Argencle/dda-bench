@@ -99,6 +99,7 @@ def extract_quantity_for_engine(
 
     # 2) try extra files
     extra_patterns: List[str] = engine_cfg.get("extra_files", [])
+    base_dir = main_output.parent
     for extra_pat in extra_patterns:
         pat_path = Path(extra_pat)
 
@@ -107,7 +108,7 @@ def extract_quantity_for_engine(
             candidate_paths = [pat_path]
         else:
             # relative / glob pattern: keep existing behaviour
-            candidate_paths = Path(".").glob(extra_pat)
+            candidate_paths = base_dir.glob(extra_pat)
         for extra_path in candidate_paths:
             val = read_quantity_from_text_file(
                 extra_path,
@@ -164,13 +165,13 @@ def extract_field_norm_from_ifdda(file_path: Path) -> Optional[float]:
     return float(m.group(1))
 
 
-def find_adda_internal_field(group_idx: int) -> Optional[Path]:
+def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Optional[Path]:
     """
-    ADDA writes internal field in runXXX_.../IntField-Y
-    We look for run{group_idx:03d}_*/IntField-Y
+    In a per-run working directory, ADDA writes something like:
+      <run_dir>/runXXX_.../IntField-Y
+    We search locally inside adda_run_dir.
     """
-    pat = f"run{group_idx:03d}_*/IntField-Y"
-    for p in Path(".").glob(pat):
+    for p in adda_run_dir.glob("run*/*IntField-Y"):
         return p
     return None
 

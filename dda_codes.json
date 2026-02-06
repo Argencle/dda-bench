@@ -63,7 +63,7 @@
 
   "ddscat": {
     "detect_substrings": ["ddscatcli"],
-    "extra_files": ["bin/ddscat.log_000"],
+    "extra_files": ["ddscat.log_000"],
     "outputs": {
       "Qext": {
         "type": "text",

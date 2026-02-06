@@ -35,36 +35,55 @@ def extract_eps_from_adda(cmd: str) -> Optional[int]:
     return int(m.group(1))
 
 
-def clean_output_files() -> None:
-    """Remove ADDA and IFDDA output files and folders."""
-    for path in Path(".").glob("run*"):
-        if path.is_dir():
-            shutil.rmtree(path)
-    for fname in [
+def clean_output_files(output_dir: str) -> None:
+    """
+    Clean only the files inside output_dir.
+    """
+    out = Path(output_dir)
+    if not out.exists():
+        return
+
+    # Remove by exact name anywhere under outputs/
+    remove_names = {
+        "diel",
+        "shape.dat",
+        "shape_ifdda.dat",
         "ExpCount",
         "inputmatlab.mat",
         "filenameh5",
         "ifdda.h5",
-    ]:
-        if os.path.exists(fname):
-            os.remove(fname)
-
-    for pattern in ["ddscat.par.bak*"]:
-        for path in Path(".").glob(pattern):
-            if path.is_file():
-                path.unlink()
-
-    bin_patterns = [
-        "ddscat.log_*",
         "mtable",
         "qtable",
         "qtable2",
-        "w*.avg",
         "target.out",
-        "ExpCount",
+    }
+
+    # Remove by glob patterns anywhere under outputs/
+    remove_globs = [
+        "run*",  # ADDA run directories
         "ddscat.par.bak*",
+        "w*.avg",
     ]
-    for pattern in bin_patterns:
-        for path in Path("bin").glob(pattern):
-            if path.is_file():
-                path.unlink()
+
+    # 1) exact names
+    for p in sorted(out.rglob("*"), reverse=True):
+        if p.name not in remove_names:
+            continue
+        try:
+            if p.is_symlink() or p.is_file():
+                p.unlink()
+            elif p.is_dir():
+                shutil.rmtree(p)
+        except Exception:
+            pass
+
+    # 2) glob patterns
+    for pattern in remove_globs:
+        for p in sorted(out.rglob(pattern), reverse=True):
+            try:
+                if p.is_symlink() or p.is_file():
+                    p.unlink()
+                elif p.is_dir():
+                    shutil.rmtree(p)
+            except Exception:
+                pass

@@ -105,7 +105,7 @@ def main() -> None:
     )
 
     if CLEAN_OUTPUT:
-        clean_output_files()
+        clean_output_files(OUTPUT_DIR)
 
     if args.check and not ok:
         raise SystemExit(1)
