@@ -246,9 +246,9 @@ def process_one_group(
                 cpu_i, mem_i = per_engine_stats.get(eng_i, (0.0, 0))
                 cpu_j, mem_j = per_engine_stats.get(eng_j, (0.0, 0))
                 line_parts.append(f"CPU_i={cpu_i or 0:.2f}s")
-                line_parts.append(f"MEM_i={(mem_i or 0)/1024:.2f}MB")
+                line_parts.append(f"MEM_i={(mem_i or 0)/1024:.2f}MiB")
                 line_parts.append(f"CPU_j={cpu_j or 0:.2f}s")
-                line_parts.append(f"MEM_j={(mem_j or 0)/1024:.2f}MB")
+                line_parts.append(f"MEM_j={(mem_j or 0)/1024:.2f}MiB")
 
             line_str = " | ".join(line_parts)
 

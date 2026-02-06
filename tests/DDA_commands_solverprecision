@@ -17,3 +17,11 @@ ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tol
 #----------Scat fin----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat fin
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0
+#----------Arbitrary shape (helix) for right circular polarization----------#
+ifdda -lambda 500 -nnnr 30 -object arbitrary shape_ifdda.dat -methodeit BICGSTAB -tolinit 1.d-4 -polarizability FG -ninitest 0 -prop 90 0 -beam pwavecircular -1
+ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
+adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 0.7071067811865475 0 0 -sym enf
+#----------Arbitrary shape (helix) for left circular polarization----------#
+ifdda -lambda 500 -nnnr 30 -object arbitrary shape_ifdda.dat -methodeit BICGSTAB -tolinit 1.d-4 -polarizability FG -ninitest 0 -prop 90 0 -beam pwavecircular 1
+ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
+adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 -0.7071067811865475 0 0 -sym enf

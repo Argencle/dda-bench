@@ -9,7 +9,7 @@
 #           IFDDA_PATH = "..."
 # ============================================================================
 #----------Full precision internal field----------#
-adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+adda -lambda 500 -shape sphere -size 200 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
 #----------Solver precision internal field (inhomogeneous)----------#
 adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
