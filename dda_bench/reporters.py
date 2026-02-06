@@ -1,4 +1,5 @@
 import math
+import json
 from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
 from .extractors import extract_aeff_meters_for_engine
@@ -22,6 +23,32 @@ from .utils import (
 CASE_W = 45
 ENGINE_W = 7
 QNAME_W = 3
+
+
+def write_case_results(
+    case_id: Optional[str],
+    per_engine_values: Dict[str, Dict[str, float]],
+    output_dir: str,
+) -> None:
+    if not case_id:
+        case_id = "unknown_case"
+
+    case_dir = Path(output_dir) / case_id
+    case_dir.mkdir(parents=True, exist_ok=True)
+
+    out = case_dir / "results.json"
+
+    data: Dict[str, Any] = {
+        "case": case_id,
+        "engines": {},
+    }
+
+    for eng, vals in per_engine_values.items():
+        data["engines"][eng] = {
+            **vals,
+        }
+
+    out.write_text(json.dumps(data, indent=2))
 
 
 def _case_expected_range(
@@ -322,5 +349,9 @@ def process_one_case(
                 logger.error(line_str)
             else:
                 logger.info(line_str)
-
+    write_case_results(
+        case_id=case_id,
+        per_engine_values=per_engine_values,
+        output_dir=output_dir,
+    )
     return not case_failed
