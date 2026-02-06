@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+from pathlib import Path
 from dda_bench.config import (
     OUTPUT_DIR,
     CLEAN_OUTPUT,
@@ -11,7 +12,7 @@ from dda_bench.config import (
 )
 from dda_bench.commands import read_command_cases
 from dda_bench.extractors import load_engine_config
-from dda_bench.reporters import process_all_cases
+from dda_bench.reporters import process_all_cases, write_summary_csv
 from dda_bench.utils import clean_output_files
 
 
@@ -102,6 +103,11 @@ def main() -> None:
         with_stats=args.with_stats,
         check=args.check,
         full_precision=args.full,
+    )
+
+    write_summary_csv(
+        output_dir=OUTPUT_DIR,
+        csv_path=str(Path(OUTPUT_DIR) / "summary.csv"),
     )
 
     if CLEAN_OUTPUT:

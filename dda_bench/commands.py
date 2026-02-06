@@ -32,16 +32,37 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
     current_cmds: List[Tuple[str, int]] = []
     current_meta: Dict[str, str] = {}
 
-    seen_ids: set[Optional[str]] = set()
+    seen_ids: set[str] = set()
 
     def flush_current() -> None:
         nonlocal current_id, current_cmds, current_meta
+
+        # do nothing if no active case
+        if current_id is None:
+            current_cmds = []
+            current_meta = {}
+            return
+
+        # skip empty cases
+        if not current_cmds:
+            current_id = None
+            current_meta = {}
+            return
+
+        if current_id in seen_ids:
+            raise ValueError(
+                f"Duplicate case id '{current_id}' in {command_file}"
+            )
+
         cases.append(
             CommandCase(
-                case_id=current_id, commands=current_cmds, meta=current_meta
+                case_id=current_id,
+                commands=current_cmds,
+                meta=current_meta,
             )
         )
         seen_ids.add(current_id)
+
         current_id = None
         current_cmds = []
         current_meta = {}
@@ -50,29 +71,35 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
         for lineno, line in enumerate(f, start=1):
             stripped = line.strip()
 
-            # ignore blank lines
             if not stripped:
                 continue
 
             # case tag
             if stripped.startswith("#") and "@case:" in stripped:
-                # flush previous case
                 flush_current()
-                # parse id
-                # accept forms:
-                #   # @case: foo
-                #   #@case:foo
                 parts = stripped.split("@case:", 1)
-                case_id = parts[1].strip()
-                current_id = case_id
+                current_id = parts[1].strip()
+
+                if not current_id:
+                    raise ValueError(
+                        f"Empty @case id at line {lineno} in {command_file}"
+                    )
+
                 continue
 
             # ignore other comments
             if stripped.startswith("#"):
                 continue
+
+            # command line must belong to an active case
+            if current_id is None:
+                raise ValueError(
+                    f"Missing '# @case:' before command at line {lineno}: {stripped}"
+                )
+
             current_cmds.append((stripped, lineno))
 
-    # flush last
+    # flush last active case
     flush_current()
 
     return cases

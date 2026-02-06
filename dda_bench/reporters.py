@@ -1,5 +1,6 @@
 import math
 import json
+import csv
 from typing import List, Tuple, Dict, Any, Optional
 from pathlib import Path
 from .extractors import extract_aeff_meters_for_engine
@@ -23,6 +24,38 @@ from .utils import (
 CASE_W = 45
 ENGINE_W = 7
 QNAME_W = 3
+
+
+def write_summary_csv(
+    output_dir: str,
+    csv_path: str,
+) -> None:
+    out = Path(output_dir)
+    rows = []
+
+    for result_file in out.glob("*/results.json"):
+        data = json.loads(result_file.read_text())
+
+        case_id = data.get("case", "unknown")
+
+        for eng, vals in data.get("engines", {}).items():
+            row = {
+                "case": case_id,
+                "engine": eng,
+                **vals,
+            }
+            rows.append(row)
+
+    if not rows:
+        return
+
+    # union of all keys
+    fieldnames = sorted({k for r in rows for k in r.keys()})
+
+    with open(csv_path, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
 
 
 def write_case_results(
