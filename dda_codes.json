@@ -1,6 +1,15 @@
 {
   "ifdda": {
     "detect_substrings": ["ifdda"],
+    "exe": "bin/ifdda",
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/shape_ifdda.dat",
+        "dst": "shape_ifdda.dat",
+        "when_contains": " -object arbitrary "
+      }
+    ],
     "aeff": {
       "source": "stdout",
       "n_dipoles_pattern": "Number of subunit for the object\\s*:\\s*(?P<value>\\d+)",
@@ -33,6 +42,15 @@
 
   "adda": {
     "detect_substrings": ["adda"],
+    "exe": "bin/adda",
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/shape.dat",
+        "dst": "shape.dat",
+        "when_contains": " -shape read "
+      }
+    ],
     "outputs": {
       "Cext": {
         "type": "text",
@@ -69,6 +87,29 @@
 
   "ddscat": {
     "detect_substrings": ["ddscatcli"],
+    "env": {
+      "DDSCAT_PAR": "bin/ddscat.par",
+      "DDSCAT_EXE": "bin/ddscat"
+    },
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/diel",
+        "dst": "diel"
+      },
+      {
+        "action": "symlink",
+        "src": "bin/shape.dat",
+        "dst": "shape.dat",
+        "when_contains": " -CSHAPE FROM_FILE "
+      },
+      {
+        "action": "copy_env_file",
+        "env_key": "DDSCAT_PAR",
+        "dst": "ddscat.par",
+        "set_env_to_dst": true
+      }
+    ],
     "extra_files": ["ddscat.log_000"],
     "aeff": {
       "source": "extra",

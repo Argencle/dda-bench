@@ -1,12 +1,29 @@
 # ============================================================================
-# NOTE: The 'adda' and 'ifdda' prefixes are only indicative — they help
-#       clarify which command line belongs to which code.
-#       These executable paths are NOT used directly.
+# HOW THIS FILE WORKS (cases + engines)
 #
-#       The actual paths to ADDA and IFDDA are defined in the compare_digits.py
-#       script via the variables:
-#           ADDA_PATH = "..."
-#           IFDDA_PATH = "..."
+# This file is parsed into *cases*. A case starts with a tag:
+#     # @case: <case_id>
+# and continues until the next "# @case:" tag (or end-of-file).
+# Every non-empty, non-comment line under a case is treated as a command
+# belonging to that case.
+#
+# Each command line must start with an engine prefix (e.g. "adda", "ifdda",
+# "ddscatcli", "adda_debug", ...). This prefix is only used to:
+#   1) detect which engine configuration to use from dda_codes.json
+#   2) strip the prefix before building the real command
+#
+# IMPORTANT:
+# - The engine prefix is NOT the executable path.
+# - The executable and environment are configured in dda_codes.json:
+#       "exe": "...", "env": {...}, "kind": "...", etc.
+#   Paths are resolved relative to the repository root.
+#
+# CASE ID RULE:
+# - case_id is used to create output folders:
+#       outputs/<case_id>/<engine>/...
+# - Use only "safe" ids. In practice, use underscores "_" between words
+#   (e.g. "sphere_ldr_qmr", "sphereinbox_ldr_qmr_eps12").
+#   Avoid spaces and "/" in case ids.
 # ============================================================================
 # @case: sphere_rrc_qmr
 #----------Radiative Reaction Correction----------#

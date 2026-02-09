@@ -3,15 +3,6 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 
-# === Executable paths ===
-ADDA_PATH = str(REPO_ROOT / "bin" / "adda")
-IFDDA_PATH = str(REPO_ROOT / "bin" / "ifdda")
-os.environ["DDSCAT_PAR"] = str(REPO_ROOT / "bin" / "ddscat.par")
-os.environ["DDSCAT_EXE"] = str(REPO_ROOT / "bin" / "ddscat")
-
-# To enable MPI parallel execution with ADDA, replace the ADDA_PATH as follows:
-# ADDA_PATH = "mpirun -np <number_of_processes> ./adda/src/mpi/adda_mpi"
-
 # === Output configuration ===
 OUTPUT_DIR = "outputs"
 CLEAN_OUTPUT = True  # remove ADDA/IFDDA temp stuff at the end
@@ -26,5 +17,5 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 DDA_CODES_JSON = REPO_ROOT / "dda_codes.json"
 
 # === Environment ===
-# Set the number of OpenMP threads for IFDDA and DDSCAT (default: 1)
+# Set the number of OpenMP threads (default: 1)
 os.environ["OMP_NUM_THREADS"] = "1"
