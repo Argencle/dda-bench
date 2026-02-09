@@ -18,7 +18,6 @@ from .executors import run_case_command
 from .utils import (
     compute_rel_err,
     matching_digits_from_rel_err,
-    extract_eps_from_adda,
 )
 
 CASE_W = 45
@@ -100,11 +99,6 @@ def _case_expected_range(
     if full_precision:
         return 11, 16
 
-    for cmd, _ in case_cmds:
-        eps = extract_eps_from_adda(cmd)
-        if eps is not None:
-            return eps - 1, eps + 2
-
     return 4, 7
 
 
@@ -137,7 +131,6 @@ def process_all_cases(
 
 def _fill_cq(vals: Dict[str, float], aeff_m: float) -> None:
     area = math.pi * (aeff_m**2)  # m^2
-
     # ext
     if "Cext" not in vals and "Qext" in vals:
         vals["Cext"] = vals["Qext"] * area

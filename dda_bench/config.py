@@ -5,7 +5,7 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 
 # === Output configuration ===
 OUTPUT_DIR = "outputs"
-CLEAN_OUTPUT = True  # remove ADDA/IFDDA temp stuff at the end
+CLEAN_OUTPUT = True  # remove temp stuff at the end
 
 # === Command files ===
 DEFAULT_COMMAND_FILE_SOLVER = "tests/DDA_commands_solverprecision"

@@ -37,6 +37,9 @@
         "pattern": "Modulus of the force\\s*:\\s*(?P<value>[0-9eE+\\.-]+)",
         "unit_factor": 1.0
       }
+    },
+    "cleanup": {
+      "remove_names": ["inputmatlab.mat", "filenameh5", "ifdda.h5", "shape_ifdda.dat"]
     }
   },
 
@@ -82,6 +85,10 @@
         "unit_factor": 1.0,
         "take_last": true
       }
+    },
+    "cleanup": {
+      "remove_globs": ["run*"],
+      "remove_names": ["ExpCount", "shape.dat"]
     }
   },
 
@@ -132,6 +139,10 @@
         "pattern": "(?:frac\\.err|f\\.err)\\s*=\\s*(?P<value>[0-9.eE+-]+)",
         "unit_factor": 1.0
       }
+    },
+    "cleanup": {
+      "remove_names": ["diel", "mtable", "qtable", "qtable2", "target.out"],
+      "remove_globs": ["w*.avg", "ddscat.par.bak*"]
     }
   }
 }

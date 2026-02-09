@@ -111,7 +111,7 @@ def main() -> None:
     )
 
     if CLEAN_OUTPUT:
-        clean_output_files(OUTPUT_DIR)
+        clean_output_files(OUTPUT_DIR, engines_cfg)
 
     if args.check and not ok:
         raise SystemExit(1)

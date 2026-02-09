@@ -44,46 +44,23 @@ def matching_digits_from_rel_err(
     return d
 
 
-def extract_eps_from_adda(cmd: str) -> Optional[int]:
+def clean_output_files(output_dir: str, engines_cfg: dict) -> None:
     """
-    Extract -eps N from an ADDA command line string.
-    Returns None if not found.
-    """
-    m = re.search(r"-eps\s+(\d+)", cmd)
-    if not m:
-        return None
-    return int(m.group(1))
-
-
-def clean_output_files(output_dir: str) -> None:
-    """
-    Clean only the files inside output_dir.
+    Clean only the files inside output_dir,
+    using cleanup rules from engines_cfg (dda_codes.json).
     """
     out = Path(output_dir)
     if not out.exists():
         return
 
-    # Remove by exact name anywhere under outputs/
-    remove_names = {
-        "diel",
-        "shape.dat",
-        "shape_ifdda.dat",
-        "ExpCount",
-        "inputmatlab.mat",
-        "filenameh5",
-        "ifdda.h5",
-        "mtable",
-        "qtable",
-        "qtable2",
-        "target.out",
-    }
+    remove_names: set[str] = set()
+    remove_globs: list[str] = []
 
-    # Remove by glob patterns anywhere under outputs/
-    remove_globs = [
-        "run*",  # ADDA run directories
-        "ddscat.par.bak*",
-        "w*.avg",
-    ]
+    # collect cleanup rules from all engines
+    for _, cfg in engines_cfg.items():
+        cleanup = cfg.get("cleanup", {})
+        remove_names.update(cleanup.get("remove_names", []))
+        remove_globs.extend(cleanup.get("remove_globs", []))
 
     # 1) exact names
     for p in sorted(out.rglob("*"), reverse=True):
