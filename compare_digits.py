@@ -2,18 +2,19 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from dda_bench.config import (
-    OUTPUT_DIR,
-    CLEAN_OUTPUT,
-    DEFAULT_COMMAND_FILE_SOLVER,
-    DEFAULT_COMMAND_FILE_FULL,
-    DEFAULT_COMMAND_FILE_INTERNALFIELD,
-    DDA_CODES_JSON,
-)
+from dda_bench.config import DDA_CODES_JSON
 from dda_bench.commands import read_command_cases
 from dda_bench.extractors import load_engine_config
 from dda_bench.reporters import process_all_cases, write_summary_csv
 from dda_bench.utils import clean_output_files
+
+
+DEFAULTS = {
+    "solver": "tests/DDA_commands_solverprecision",
+    "full": "tests/DDA_commands_fullprecision",
+    "force": "tests/DDA_commands_internalfield",
+    "int": "tests/DDA_commands_internalfield",
+}
 
 
 def build_logger(check: bool) -> logging.Logger:
@@ -41,31 +42,27 @@ def build_logger(check: bool) -> logging.Logger:
     return logger
 
 
-def main() -> None:
+def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Run groups of DDA commands and compare digits."
+        description="Run DDA cases and compare matching digits across engines."
     )
+
+    parser.add_argument(
+        "--mode",
+        choices=["solver", "full", "force", "int"],
+        default="full",
+        help="Select preset command file + quantities (default: full).",
+    )
+    parser.add_argument(
+        "--commands",
+        default=None,
+        help="Override command file path (takes precedence over --mode).",
+    )
+
     parser.add_argument(
         "--with-stats",
         action="store_true",
         help="Enable /usr/bin/time measurements.",
-    )
-    parser.add_argument(
-        "-fp",
-        "--full",
-        action="store_true",
-        help="Use the full-precision command file.",
-    )
-    parser.add_argument(
-        "--force",
-        action="store_true",
-        help="Compute the Force.",
-    )
-    parser.add_argument(
-        "--int",
-        dest="int_field",
-        action="store_true",
-        help="Compute the Internal Field.",
     )
     parser.add_argument(
         "-ci",
@@ -73,23 +70,49 @@ def main() -> None:
         action="store_true",
         help="CI/CD mode: minimal output, fails on mismatch",
     )
-
-    args = parser.parse_args()
-
-    command_file = (
-        DEFAULT_COMMAND_FILE_FULL if args.full else DEFAULT_COMMAND_FILE_SOLVER
+    parser.add_argument(
+        "-o",
+        "--output",
+        default="outputs",
+        help="Output directory (default: outputs)",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Clean generated output files inside --output after run.",
+    )
+    parser.add_argument(
+        "--omp",
+        default="1",
+        help="Set OMP_NUM_THREADS (default: 1).",
     )
 
+    return parser.parse_args()
+
+
+def main() -> None:
+    args = parse_args()
+
+    # runtime env
+    os.environ["OMP_NUM_THREADS"] = str(args.omp)
+
+    # engine config
+    engines_cfg = load_engine_config(DDA_CODES_JSON)
+
+    # command file selection
+    command_file = args.commands if args.commands else DEFAULTS[args.mode]
+
+    # quantities selection
     quantities = ["Cext", "Cabs", "residual1", "Qext", "Qabs"]
-    if args.force:
+    if args.mode == "force":
         quantities.append("force")
-    if args.int_field:
-        command_file = DEFAULT_COMMAND_FILE_INTERNALFIELD
+    if args.mode == "int":
         quantities.append("int_field")
 
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    output_dir = args.output
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
 
-    engines_cfg = load_engine_config(DDA_CODES_JSON)
+    # load cases
     cases = read_command_cases(command_file)
 
     logger = build_logger(args.check)
@@ -97,21 +120,21 @@ def main() -> None:
     ok = process_all_cases(
         cases=cases,
         engines_cfg=engines_cfg,
-        output_dir=OUTPUT_DIR,
+        output_dir=output_dir,
         logger=logger,
         quantities=quantities,
         with_stats=args.with_stats,
         check=args.check,
-        full_precision=args.full,
+        full_precision=(args.mode == "full"),
     )
 
     write_summary_csv(
-        output_dir=OUTPUT_DIR,
-        csv_path=str(Path(OUTPUT_DIR) / "summary.csv"),
+        output_dir=output_dir,
+        csv_path=str(Path(output_dir) / "summary.csv"),
     )
 
-    if CLEAN_OUTPUT:
-        clean_output_files(OUTPUT_DIR, engines_cfg)
+    if args.clean:
+        clean_output_files(output_dir, engines_cfg)
 
     if args.check and not ok:
         raise SystemExit(1)
