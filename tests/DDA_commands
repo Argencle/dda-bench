@@ -7,6 +7,15 @@
 # Every non-empty, non-comment line under a case is treated as a command
 # belonging to that case.
 #
+# Per-case tolerance:
+#     # @tol: <min_digits> <max_digits>
+# This tag applies to the current case and defines the expected matching
+# digit range used when comparing engines.
+#
+# Example:
+#     # @case: sphere_ldr_qmr
+#     # @tol: 11 16
+#
 # Each command line must start with an engine prefix (e.g. "adda", "ifdda",
 # "ddscatcli", "adda_debug", ...). This prefix is only used to:
 #   1) detect which engine configuration to use from dda_codes.json
@@ -15,7 +24,7 @@
 # IMPORTANT:
 # - The engine prefix is NOT the executable path.
 # - The executable and environment are configured in dda_codes.json:
-#       "exe": "...", "env": {...}, "kind": "...", etc.
+#       "exe": "...", "env": {...}, etc.
 #   Paths are resolved relative to the repository root.
 #
 # CASE ID RULE:
@@ -26,142 +35,201 @@
 #   Avoid spaces and "/" in case ids.
 # ============================================================================
 # @case: sphere_rrc_qmr
+# @tol: 11 16
 #----------Radiative Reaction Correction----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.3716237728525569 0.4374377375744837 -eps 4 -pol rrc -int poi -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 1.2 -tolinit 1.d-4 -polarizability RR -igt 0 -nnnr 16 -ninitest 0 
 # @case: sphere_cm_qmr
+# @tol: 11 16
 #----------Clausius Mossotti----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0
 # @case: sphere_lak_qmr
+# @tol: 11 16
 #----------Lakhtakia----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol lak -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LA -nnnr 16 -ninitest 0
 # @case: sphere_dgf_qmr
+# @tol: 11 16
 #----------Digitized Green's function----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol dgf -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability GB -nnnr 16 -ninitest 0
 # @case: sphere_fcd_qmr
+# @tol: 11 16
 #----------Filtered Coupled Dipoles----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 1 0 0
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -prop 90 0
 ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: sphere_ildr_qmr
+# @tol: 11 16
 #----------Isotropized Lattice Dispersion Relation----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr avgpol -grid 16 -init_field zero -no_vol_cor -prop 0.8506508083520399 0 0.5257311121191336 -sym enf -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LR -nnnr 16 -ninitest 0 -prop 58.282525588538995 0.0
 # @case: sphere_ldr_qmr
+# @tol: 11 16
 #----------Classic Lattice Dispersion Relation----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0 -sym enf
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
 ddscatcli -CMDSOL QMRCCG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: sphere_igt_qmr
+# @tol: 11 16
 #----------Integrated Green's Tensor----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -int igt 1 -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -igt 1
 # @case: sphere_ldr_bicgstab
+# @tol: 11 16
 #----------Bi-conjugate gradient stabilized----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
 ddscatcli -CMDSOL PBCGST -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 # @case: sphere_ldr_bicgstab2
+# @tol: 11 16
 #---------- Enhanced Bi-CGStab(2) ----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter bcgs2 -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 15 -init_field zero -scat dr -prop 1 0 0
 ddscatcli -CMDSOL PBCGS2 -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 # @case: sphere_ldr_gpbicg
+# @tol: 11 16
 #----------Generalized Product Bi-Conjugate Gradient----------#
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit GPBICG1 -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 15 -ninitest 0 -prop 90 0
 ddscatcli -CMDSOL GPBICG -CALPHA LATTDR -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -run
 # @case: cube_ldr_qmr
+# @tol: 11 16
 #----------Cube----------#
 adda -lambda 0.5 -shape box 1 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr
 ifdda -lambda 500 -object cube 200 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0
 ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.12407009817988003 0.12407009817988003 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "16 16 16" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -NRFLD 0 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: cuboid_ldr_qmr
+# @tol: 11 16
 #----------Cuboid----------#
 adda -lambda 0.5 -shape box 1 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf -scat_matr none
 ifdda -lambda 500 -object cuboid1 200 200 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0
 ddscatcli -CSHAPE RCTGLPRSM -AEFF "0.09847450218426967 0.09847450218426967 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 8" -SHPAR "16 16 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -NRFLD 0 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: cylinder_ldr_qmr_both_pol
+# @tol: 11 16
 #----------Cylinder (both polarizations)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: cylinder_ldr_qmr_perp_pol
+# @tol: 11 16
 #----------Cylinder (perpendicular-polarization)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf
 ifdda -lambda 500 -object cylinder 98.8755329116021 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: cylinder_ldr_qmr_par_pol
+# @tol: 11 16
 #----------Cylinder (parallel-polarization)----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0
 ifdda -lambda 500 -object cylinder 98.8755329116021 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 90 0 -beam pwavelinear 1 1
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (0,0) (1,0)" -run
 # @case: cylinder_fcd_bicgstab_rcp_pol
+# @tol: 11 16
 #----------Cylinder (circular right polarization)----------#
 ifdda -lambda 500 -object cylinder 98.8755329116021 100 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 16 -ninitest 0 -prop 90 0 -beam pwavecircular -1
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -run
 # @case: cylinder_fcd_bicgstab_lcp_pol
+# @tol: 11 16
 #----------Cylinder (circular left polarization)----------#
 ifdda -lambda 500 -object cylinder 98.8755329116021 100 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 16 -ninitest 0 -prop 90 0 -beam pwavecircular 1
 ddscatcli -CSHAPE CYLNDRPBC -AEFF "0.09085602964160698 0.09085602964160698 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "16 16 16" -SHPAR "8 16 3 0 0 1" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -run
 # @case: ellipsoid_ldr_qmr_both_pol
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric both polarizations)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -run
 # @case: ellipsoid_ldr_qmr_both_pol_arbitrary_orient
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric both polarizations with arbitrary orientation)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -orient 12 25 97
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "25.814894999686825 25.814894999686825 1" -ROT_THETA "108.32456363184403 108.32456363184403 1" -ROT_PHI "3.110136148583404 3.110136148583404 1" -ETASCA 10 -run
 # @case: ellipsoid_ldr_qmr_perp_pol
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric perpendicular-polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -sym enf -no_vol_cor
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 90 0
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
 # @case: ellipsoid_ldr_qmr_par_pol
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric parallel-polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 90 0 -beam pwavelinear 1 1
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (0,0) (-1,0)" -run
 # @case: ellipsoid_fcd_bicgstab_rcp_pol
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric circular right polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0 0 0 0.70710678118654746 0 0 0.70710678118654746 0
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 32 -ninitest 0 -prop 90 0 -beam pwavecircular -1
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -run
 # @case: ellipsoid_fcd_bicgstab_lcp_pol
+# @tol: 11 16
 #----------Ellipsoid (non-symmetric circular left polarization)----------#
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0 0 0 0.70710678118654746 0 0 -0.70710678118654746 0
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 32 -ninitest 0 -prop 90 0 -beam pwavecircular 1
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -run
 # @case: arbitrary_fcd_bicgstab_rcp_pol
+# @tol: 11 16
 #----------Arbitrary shape (helix) for right circular polarization----------#
 ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
 adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 0.7071067811865475 0 0 -sym enf
 # @case: arbitrary_fcd_bicgstab_lcp_pol
+# @tol: 11 16
 #----------Arbitrary shape (helix) for left circular polarization----------#
 ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
 adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 -0.7071067811865475 0 0 -sym enf
 # @case: cylinder_ldr_qmr_arbitrary_prop
+# @tol: 11 16
 #----------Arbitrary propagation direction----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr
 ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30
 # @case: cylinder_ldr_qmr_x_pol
+# @tol: 11 16
 #----------Linear e_x-polarisation direction----------#
 adda -lambda 0.5 -shape cylinder 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -scat dr
 ifdda -lambda 500 -object cylinder 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -prop 35 30 -beam pwavelinear 1 1
 # @case: ellipsoid_ldr_qmr_arbitrary_pol_x_prop
+# @tol: 11 16
 #----------Linear arbitrary-polarisation direction with prop along x----------#
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 90 0 -beam pwavelinear 0.2 1
 ddscatcli -CSHAPE ELLIPSOID -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL QMRCCG -CALPHA LATTDR -IORTH 1 -POL_E01 "(0,0) (0.8944271909999159,0) (-0.4472135954999579,0)" -run
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -orient 90 26.56505117707799 -90 -sym enf
 # @case: ellipsoid_ldr_qmr_arbitrary_pol_z_prop
+# @tol: 11 16
 #----------Linear arbitrary-polarisation direction with prop along z----------#
 ifdda -lambda 500 -object ellipsoid 100 200 50 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 32 -ninitest 0 -prop 0 0 -beam pwavelinear 0.2 1
 adda -lambda 0.5 -shape ellipsoid 2.0 0.5 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -scat dr -prop 0 0 1 -no_vol_cor -orient 0 0 26.56505117707799 -sym enf
-# @case: sphere_rrc_qmr_diagonal_anisotropy
-#----------Diagonal anisotropy----------#
+# @case: sphere_rrc_qmr_diagonal_anisotropy_eta=12
+# @tol: 11 16
+#----------Diagonal anisotropy eta=12----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 1.1 0.0 1.2 0.0 -eps 12 -pol rrc -grid 16 -init_field zero -no_vol_cor -anisotr -scat dr -sym enf 
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -tolinit 1.d-12 -polarizability RR -nnnr 16 -ninitest 0 -trope 1.69 0.2 0.0 0.0 0.0 0.0 0.0 0.0 1.21 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.44 0.0
-# @case: sphereinbox_ldr_qmr_eps12
+# @case: sphereinbox_ldr_qmr_eps=12
+# @tol: 11 16
 #----------Inhomogeneous sphere in a vacuum cube with eps=12----------#
 adda -lambda 0.5 -shape spherebox 1 -size 0.2 -iter qmr -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 12 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr
 ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-12 -polarizability LS -nnnr 16 -ninitest 0 -near_field 0 0 1
+# @case: sphere_rrc_qmr_diagonal_anisotropy_eta=4
+# @tol: 4 7
+#----------Diagonal anisotropy eta=4----------#
+adda -lambda 0.5 -shape sphere -size 1.0 -iter bicgstab -m 1.302265942870714 0.07678923076154483 1.1 0.0 1.2 0.0 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -anisotr -prop 0.49673176489215404 0.28678821817552297 0.8191520442889918 -sym enf -scat dr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -trope 1.69 0.2 0.0 0.0 0.0 0.0 0.0 0.0 1.21 0.0 0.0 0.0 0.0 0.0 0.0 0.0 1.44 0.0 -prop 35 30
+# @case: sphereinbox_ldr_qmr_eps=4
+# @tol: 4 7
+#----------Inhomogeneous sphere in a vacuum cube eta=4----------#
+adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -scat dr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 0 0 1
+# @case: sphere_cm_qmr_scat_fin
+# @tol: 4 7
+#----------Scat fin----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol cm -grid 16 -init_field zero -no_vol_cor -scat fin
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability CM -nnnr 16 -ninitest 0
+# @case: arbitrary_fcd_bicgstab_rcp_pol_targetinbox
+# @tol: 4 7
+#----------Arbitrary shape (helix) for right circular polarization----------#
+ifdda -lambda 500 -nnnr 30 -object arbitrary shape_ifdda.dat -methodeit BICGSTAB -tolinit 1.d-4 -polarizability FG -ninitest 0 -prop 90 0 -beam pwavecircular -1
+ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
+adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 0.7071067811865475 0 0 -sym enf
+# @case: arbitrary_lcd_bicgstab_rcp_pol_targetinbox
+# @tol: 4 7
+#----------Arbitrary shape (helix) for left circular polarization----------#
+ifdda -lambda 500 -nnnr 30 -object arbitrary shape_ifdda.dat -methodeit BICGSTAB -tolinit 1.d-4 -polarizability FG -ninitest 0 -prop 90 0 -beam pwavecircular 1
+ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
+adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 -0.7071067811865475 0 0 -sym enf

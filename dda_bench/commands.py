@@ -86,6 +86,18 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
 
                 continue
 
+            # tol meta
+            if stripped.startswith("#") and "@tol:" in stripped:
+                parts = stripped.split("@tol:", 1)[1].strip().split()
+                if len(parts) == 2:
+                    current_meta["tol_min"] = parts[0]
+                    current_meta["tol_max"] = parts[1]
+                else:
+                    raise ValueError(
+                        f"Invalid @tol format at line {lineno} in {command_file}"
+                    )
+                continue
+
             # ignore other comments
             if stripped.startswith("#"):
                 continue

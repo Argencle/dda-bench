@@ -10,8 +10,7 @@ from dda_bench.utils import clean_output_files
 
 
 DEFAULTS = {
-    "solver": "tests/DDA_commands_solverprecision",
-    "full": "tests/DDA_commands_fullprecision",
+    "default": "tests/DDA_commands",
     "force": "tests/DDA_commands_internalfield",
     "int": "tests/DDA_commands_internalfield",
 }
@@ -49,9 +48,9 @@ def parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--mode",
-        choices=["solver", "full", "force", "int"],
-        default="full",
-        help="Select preset command file + quantities (default: full).",
+        choices=["default", "force", "int"],
+        default="default",
+        help="Select preset command file + quantities (default: default).",
     )
     parser.add_argument(
         "--commands",
@@ -124,7 +123,6 @@ def main() -> None:
         logger=logger,
         quantities=quantities,
         with_stats=args.with_stats,
-        full_precision=(args.mode == "full"),
     )
 
     write_summary_csv(

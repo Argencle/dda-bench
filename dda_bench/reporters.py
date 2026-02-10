@@ -74,17 +74,12 @@ def write_summary_csv(output_dir: str, csv_path: str) -> None:
 # ---------------------------------------------------------------------
 
 
-def _case_expected_range(full_precision: bool) -> Tuple[int, int]:
+def _case_expected_range(case: CommandCase) -> Tuple[int, int]:
     """
-    Decide ONE tolerance range for the WHOLE case.
-
-    Priority:
-    1) full_precision => [11, 16]
-    2) else => [4, 7]
+    Decide tolerance range for the case.
     """
-    if full_precision:
-        return 11, 16
-    return 4, 7
+    meta = case.meta
+    return int(meta["tol_min"]), int(meta["tol_max"])
 
 
 # ---------------------------------------------------------------------
@@ -217,7 +212,6 @@ def process_all_cases(
     logger,
     quantities: List[str],
     with_stats: bool,
-    full_precision: bool,
 ) -> bool:
     all_ok = True
     for case in cases:
@@ -228,7 +222,6 @@ def process_all_cases(
             logger=logger,
             quantities=quantities,
             with_stats=with_stats,
-            full_precision=full_precision,
         )
         if not ok:
             all_ok = False
@@ -242,12 +235,11 @@ def process_one_case(
     logger,
     quantities: List[str],
     with_stats: bool,
-    full_precision: bool,
 ) -> bool:
     case_id = case.case_id
     case_cmds = case.commands
 
-    case_min, case_max = _case_expected_range(full_precision)
+    case_min, case_max = _case_expected_range(case)
 
     # 1) run all commands
     per_engine_values: Dict[str, Dict[str, float]] = {}
