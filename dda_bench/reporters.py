@@ -2,7 +2,7 @@ import csv
 import json
 import math
 from pathlib import Path
-from typing import List, Tuple, Dict, Any, Optional
+from typing import List, Tuple, Dict, Any, Optional, Set
 from .commands import CommandCase
 from .executors import run_case_command
 from .extractors import (
@@ -70,16 +70,136 @@ def write_summary_csv(output_dir: str, csv_path: str) -> None:
 
 
 # ---------------------------------------------------------------------
-# Tolerance range
+# Meta parsing: tolerances + skip_pairs
 # ---------------------------------------------------------------------
 
 
-def _case_expected_range(case: CommandCase) -> Tuple[int, int]:
+def _parse_int_pair(
+    meta: Dict[str, str], kmin: str, kmax: str
+) -> Optional[Tuple[int, int]]:
+    if kmin not in meta and kmax not in meta:
+        return None
+    if kmin not in meta or kmax not in meta:
+        raise ValueError(
+            f"Case meta must define both {kmin} and {kmax}. Got: {meta}"
+        )
+    a = int(meta[kmin])
+    b = int(meta[kmax])
+    if a > b:
+        raise ValueError(
+            f"Invalid tolerance range {a} {b} for keys {kmin}/{kmax}"
+        )
+    return a, b
+
+
+def _case_tol_ranges(
+    case: CommandCase,
+) -> Tuple[
+    Tuple[int, int],
+    Tuple[int, int],
+    Tuple[int, int],
+    Optional[Tuple[int, int]],
+    Optional[Tuple[int, int]],
+]:
     """
-    Decide tolerance range for the case.
+    Rules (enforced by read_command_cases()):
+      - EITHER:
+          A) @tol: <min> <max>              -> applies to BOTH Ext and Abs
+        OR
+          B) @tol_ext: <min> <max> AND @tol_abs: <min> <max>
+      - ALWAYS:
+          @tol_res: <min> <max>
+
+    Optional:
+      - @tol_int: <min> <max>
+      - @tol_force: <min> <max>
+
+    Returns:
+      (tol_ext, tol_abs, tol_res, tol_int_or_none, tol_force_or_none)
     """
-    meta = case.meta
-    return int(meta["tol_min"]), int(meta["tol_max"])
+    meta = case.meta or {}
+
+    tol = _parse_int_pair(meta, "tol_min", "tol_max")
+    tol_ext = _parse_int_pair(meta, "tol_ext_min", "tol_ext_max")
+    tol_abs = _parse_int_pair(meta, "tol_abs_min", "tol_abs_max")
+
+    tol_res = _parse_int_pair(meta, "tol_res_min", "tol_res_max")
+    if tol_res is None:
+        # should not happen if read_command_cases validates, but keep safe
+        raise ValueError(
+            f"Case '{case.case_id}' must define @tol_res: <min> <max>."
+        )
+
+    tol_int = _parse_int_pair(meta, "tol_int_min", "tol_int_max")
+    tol_force = _parse_int_pair(meta, "tol_force_min", "tol_force_max")
+
+    if tol is not None:
+        # forbid mixing (safety; normally already validated)
+        if tol_ext is not None or tol_abs is not None:
+            raise ValueError(
+                f"Case '{case.case_id}' mixes @tol with @tol_ext/@tol_abs."
+            )
+        return tol, tol, tol_res, tol_int, tol_force
+
+    # no @tol => need ext+abs (safety; normally already validated)
+    if tol_ext is None or tol_abs is None:
+        raise ValueError(
+            f"Case '{case.case_id}' must define BOTH @tol_ext and @tol_abs when @tol is absent."
+        )
+    return tol_ext, tol_abs, tol_res, tol_int, tol_force
+
+
+def _parse_skip_pairs(
+    case: CommandCase,
+    engines_cfg: Dict[str, Any],
+) -> Set[Tuple[str, str]]:
+    """
+    meta["skip_pairs"] is a list of (engineA, engineB) tuples.
+    Returns a symmetric set containing (a,b) and (b,a).
+
+    Safety:
+      - raises if an engine name is not present in engines_cfg
+    """
+    meta = case.meta or {}
+    raw = meta.get("skip_pairs")
+    if not raw:
+        return set()
+
+    if not isinstance(raw, list):
+        raise ValueError(
+            f"Case '{case.case_id}': meta['skip_pairs'] must be a list of pairs"
+        )
+
+    out: Set[Tuple[str, str]] = set()
+    for pair in raw:
+        if (
+            not isinstance(pair, tuple)
+            or len(pair) != 2
+            or not pair[0]
+            or not pair[1]
+        ):
+            raise ValueError(
+                f"Case '{case.case_id}': invalid skip_pairs entry: {pair}"
+            )
+
+        a, b = pair[0].strip(), pair[1].strip()
+
+        # validate against dda_codes.json keys
+        if a not in engines_cfg:
+            raise ValueError(
+                f"Case '{case.case_id}': @skip_pairs refers to unknown engine '{a}' "
+                "(not found in dda_codes.json)."
+            )
+        if b not in engines_cfg:
+            raise ValueError(
+                f"Case '{case.case_id}': @skip_pairs refers to unknown engine '{b}' "
+                "(not found in dda_codes.json)."
+            )
+
+        out.add((a, b))
+        out.add((b, a))
+
+    return out
 
 
 # ---------------------------------------------------------------------
@@ -135,8 +255,8 @@ def _compare_extabs(
     eng_j: str,
     c_key: str,
     q_key: str,
-    case_min: int,
-    case_max: int,
+    tol_min: int,
+    tol_max: int,
 ) -> Tuple[str, bool]:
     """
     Returns:
@@ -164,7 +284,7 @@ def _compare_extabs(
         d = _digits(vi[c_key], vj[c_key])
         if d is None:
             return "NA❌", True
-        bad = d < case_min or d > case_max
+        bad = d < tol_min or d > tol_max
         return f"{d}C{'❌' if bad else ''}", bad
 
     # 2) raw Q for both
@@ -177,7 +297,7 @@ def _compare_extabs(
         d = _digits(vi[q_key], vj[q_key])
         if d is None:
             return "NA❌", True
-        bad = d < case_min or d > case_max
+        bad = d < tol_min or d > tol_max
         return f"{d}Q{'❌' if bad else ''}", bad
 
     # 3) both have C (derived)
@@ -185,7 +305,7 @@ def _compare_extabs(
         d = _digits(vi[c_key], vj[c_key])
         if d is None:
             return "NA❌", True
-        bad = d < case_min or d > case_max
+        bad = d < tol_min or d > tol_max
         return f"{d}C*{'❌' if bad else ''}", bad
 
     # 4) both have Q (derived)
@@ -193,7 +313,7 @@ def _compare_extabs(
         d = _digits(vi[q_key], vj[q_key])
         if d is None:
             return "NA❌", True
-        bad = d < case_min or d > case_max
+        bad = d < tol_min or d > tol_max
         return f"{d}Q*{'❌' if bad else ''}", bad
 
     # 5) no common metric
@@ -239,7 +359,14 @@ def process_one_case(
     case_id = case.case_id
     case_cmds = case.commands
 
-    case_min, case_max = _case_expected_range(case)
+    (
+        (tol_ext_min, tol_ext_max),
+        (tol_abs_min, tol_abs_max),
+        (tol_res_min, tol_res_max),
+        _tol_int,
+        _tol_force,
+    ) = _case_tol_ranges(case)
+    skip_pairs = _parse_skip_pairs(case, engines_cfg)
 
     # 1) run all commands
     per_engine_values: Dict[str, Dict[str, float]] = {}
@@ -278,6 +405,14 @@ def process_one_case(
                 per_engine_sources[engine][q] = "raw"
 
     engines_in_case = list(per_engine_values.keys())
+    engines_set = set(engines_in_case)
+    for a, b in skip_pairs:
+        if a not in engines_set or b not in engines_set:
+            logger.warning(
+                f"{case_id}: @skip_pairs ({a},{b}) but one/both engines not in this case "
+                f"(present: {sorted(engines_set)})"
+            )
+
     case_failed = False
 
     # 2) compute AEFF + fill missing C<->Q for results (always)
@@ -317,6 +452,20 @@ def process_one_case(
             eng_i = engines_in_case[i]
             eng_j = engines_in_case[j]
 
+            # --- skip requested pairs for this case ---
+            if (eng_i, eng_j) in skip_pairs:
+                logger.info(
+                    " | ".join(
+                        [
+                            f"{(case_id or 'unknown_case'):<{CASE_W}}",
+                            f"{eng_i:<{ENGINE_W}}",
+                            f"{eng_j:<{ENGINE_W}}",
+                            f"{'SKIP':<{QNAME_W}}:@skip_pairs",
+                        ]
+                    )
+                )
+                continue
+
             line_parts = [
                 f"{(case_id or 'unknown_case'):<{CASE_W}}",
                 f"{eng_i:<{ENGINE_W}}",
@@ -333,8 +482,8 @@ def process_one_case(
                 eng_j=eng_j,
                 c_key="Cext",
                 q_key="Qext",
-                case_min=case_min,
-                case_max=case_max,
+                tol_min=tol_ext_min,
+                tol_max=tol_ext_max,
             )
             line_parts.append(f"{'Ext':<{QNAME_W}}:{ext_txt}")
             if ext_bad:
@@ -347,8 +496,8 @@ def process_one_case(
                 eng_j=eng_j,
                 c_key="Cabs",
                 q_key="Qabs",
-                case_min=case_min,
-                case_max=case_max,
+                tol_min=tol_abs_min,
+                tol_max=tol_abs_max,
             )
             line_parts.append(f"{'Abs':<{QNAME_W}}:{abs_txt}")
             if abs_bad:
@@ -360,21 +509,26 @@ def process_one_case(
                 if q in ("Cext", "Cabs", "Qext", "Qabs"):
                     continue
 
-                # residuals => warning only (never fail)
+                # residuals => FAIL if out of tolerance
                 if q == "residual1":
                     v_i = per_engine_values.get(eng_i, {}).get(q)
                     v_j = per_engine_values.get(eng_j, {}).get(q)
                     if v_i is None or v_j is None:
                         line_parts.append(f"{q:<{QNAME_W}}:NA")
                         continue
+
                     d = _digits(v_i, v_j)
                     if d is None:
-                        line_parts.append(f"{q:<{QNAME_W}}:NA")
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
                         continue
-                    warn = d < case_min or d > case_max
+
+                    bad = d < tol_res_min or d > tol_res_max
                     line_parts.append(
-                        f"{q:<{QNAME_W}}:{d}{'⚠️' if warn else ''}"
+                        f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
                     )
+                    if bad:
+                        pair_failed = True
                     continue
 
                 # internal field special compare (ADDA + IFDDA)
@@ -409,7 +563,7 @@ def process_one_case(
                                 ifdda_h5, adda_csv, norm
                             )
                             d = matching_digits_from_rel_err(rel)
-                            if d is None or d < case_min:
+                            if d is None or d < tol_ext_min:
                                 line_parts.append(
                                     f"{q:<{QNAME_W}}:{d if d is not None else 'NA'}❌"
                                 )
@@ -449,7 +603,7 @@ def process_one_case(
                             rel = compute_rel_err(ifdda_force, adda_force)
                             d = matching_digits_from_rel_err(rel)
 
-                            if d is None or d < case_min:
+                            if d is None or d < tol_ext_min:
                                 line_parts.append(
                                     f"{q:<{QNAME_W}}:{d if d is not None else 'NA'}❌"
                                 )
@@ -477,7 +631,7 @@ def process_one_case(
                     pair_failed = True
                     continue
 
-                bad = d < case_min or d > case_max
+                bad = d < tol_ext_min or d > tol_ext_max
                 line_parts.append(f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}")
                 if bad:
                     pair_failed = True
