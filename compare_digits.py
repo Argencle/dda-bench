@@ -124,7 +124,6 @@ def main() -> None:
         logger=logger,
         quantities=quantities,
         with_stats=args.with_stats,
-        check=args.check,
         full_precision=(args.mode == "full"),
     )
 

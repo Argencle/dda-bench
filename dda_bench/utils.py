@@ -1,6 +1,5 @@
 import math
 import shutil
-import re
 from pathlib import Path
 from typing import Optional
 
