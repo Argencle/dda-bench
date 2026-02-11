@@ -404,10 +404,6 @@ def _process_one_case(
     (tol_abs_min, tol_abs_max) = tol_abs
     (tol_res_min, tol_res_max) = tol_res
     (tol_int_min, tol_int_max) = tol_int if tol_int else (None, None)
-    (tol_force_min, tol_force_max) = tol_force if tol_force else (None, None)
-    (tol_torque_min, tol_torque_max) = (
-        tol_torque if tol_torque else (None, None)
-    )
 
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
@@ -445,7 +441,6 @@ def _process_one_case(
     per_engine_sources: dict[str, dict[str, str]] = {}  # raw/derived
     per_engine_stats: dict[str, tuple[float | None, int | None]] = {}
     per_engine_files: dict[str, list[Path]] = {}  # stdout files
-    per_engine_run_dirs: dict[str, list[Path]] = {}  # working dirs
 
     for cmd_idx, (cmd, _) in enumerate(case_cmds):
         engine = detect_engine_from_cmd(cmd, engines_cfg)
@@ -463,7 +458,6 @@ def _process_one_case(
 
         per_engine_stats[engine] = (cpu_time, mem)
         per_engine_files.setdefault(engine, []).append(stdout_path)
-        per_engine_run_dirs.setdefault(engine, []).append(run_dir)
 
         per_engine_values.setdefault(engine, {})
         per_engine_sources.setdefault(engine, {})
@@ -602,8 +596,10 @@ def _process_one_case(
                     tol_int_min, tol_int_max = tol_int
 
                     # stdout paths for THIS pair
-                    out_i = (per_engine_files.get(eng_i) or [None])[0]
-                    out_j = (per_engine_files.get(eng_j) or [None])[0]
+                    files_i = per_engine_files.get(eng_i)
+                    files_j = per_engine_files.get(eng_j)
+                    out_i = files_i[0] if files_i else None
+                    out_j = files_j[0] if files_j else None
 
                     if not out_i or not out_j:
                         # if the case requires int_field, missing outputs fail
