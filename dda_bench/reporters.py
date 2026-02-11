@@ -303,6 +303,28 @@ def _fill_cq(
         src["Qabs"] = "derived"
 
 
+def _add_recomputed_quantities(
+    eng: str,
+    per_vals: dict[str, dict[str, float]],
+    per_src: dict[str, dict[str, str]],
+) -> None:
+    """
+    Add recalculated quantities to outputs.
+    """
+    vals = per_vals.setdefault(eng, {})
+    src = per_src.setdefault(eng, {})
+
+    name_cpr, cpr_val = aligned_force_metric(eng, per_vals)
+    if cpr_val is not None and name_cpr == "Cpr*":
+        vals["Cpr_recalc"] = cpr_val
+        src["Cpr_recalc"] = "derived"
+
+    name_qtrq, qtrq_val = aligned_torque_metric(eng, per_vals)
+    if qtrq_val is not None and name_qtrq == "Qtrq*":
+        vals["Qtrq_recalc"] = qtrq_val
+        src["Qtrq_recalc"] = "derived"
+
+
 # ---------------------------------------------------------------------
 # Ext/Abs display logic (C vs Q, raw vs derived)
 # ---------------------------------------------------------------------
@@ -574,6 +596,27 @@ def _process_one_case(
         src["aeff"] = "raw"
         _fill_cq(vals, src, aeff_m)
 
+    # collect lambda once per engine (needed for torque recalc persistence)
+    for eng, files in per_engine_files.items():
+        stdout0 = files[0] if files else None
+        if not stdout0:
+            continue
+        lambda_m = extract_lambda_meters_for_engine(
+            engines_cfg.get(eng, {}),
+            stdout_path=stdout0,
+        )
+        if lambda_m is not None:
+            per_engine_values.setdefault(eng, {})["lambda"] = lambda_m
+            per_engine_sources.setdefault(eng, {})["lambda"] = "raw"
+
+    # add recalculated quantities for results.json / summary.csv
+    for eng in engines_in_case:
+        _add_recomputed_quantities(
+            eng,
+            per_engine_values,
+            per_engine_sources,
+        )
+
     # 3) pairwise compare
     # We DISPLAY "Ext" and "Abs" instead of Cext/Cabs/Qext/Qabs columns,
     # but results.json still contains everything (raw + derived).
@@ -765,17 +808,6 @@ def _process_one_case(
             # --- force (only for cases that need it) ---
             if need_torque:
                 q = "torque"
-
-                for eng, stdout0 in zip(
-                    engines_in_case,
-                    [files[0] for files in per_engine_files.values()],
-                ):
-                    lambda_m = extract_lambda_meters_for_engine(
-                        engines_cfg.get(eng, {}),
-                        stdout_path=stdout0,
-                    )
-                    if lambda_m is not None:
-                        per_engine_values[eng]["lambda"] = lambda_m
 
                 # We always try to compare a consistent metric:
                 # Prefer Qtrq (raw),
