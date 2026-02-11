@@ -27,7 +27,7 @@ def detect_engine_from_cmd(cmd: str, engines_cfg: dict[str, Any]) -> str:
     raise ValueError(f"Cannot detect engine for command: {cmd}")
 
 
-def read_quantity_from_text_file(
+def _read_quantity_from_text_file(
     output_path: Path,
     pattern: str,
     unit_factor: float = 1.0,
@@ -62,16 +62,149 @@ def read_quantity_from_text_file(
     return value * unit_factor
 
 
-def read_quantity_from_hdf5(
-    output_path: Path, dataset: str, index: int | None = None
-) -> float | None:
-    if not output_path.exists():
+def _resolve_paths_from_spec(
+    spec: dict[str, Any],
+    main_output: Path,
+) -> list[Path]:
+    """
+    Resolve file(s) to read depending on spec["source"].
+
+    Supported:
+      - source="run_dir"      + path
+      - source="run_dir_glob" + pattern
+      - source="stdout"       (main_output)
+    """
+    run_dir = main_output.parent
+    src = spec.get("source", "stdout")
+
+    if src == "stdout":
+        return [main_output]
+
+    if src == "run_dir":
+        rel = spec.get("path")
+        if not rel:
+            return []
+        return [run_dir / rel]
+
+    if src == "run_dir_glob":
+        pat = spec.get("pattern")
+        if not pat:
+            return []
+        return list(run_dir.glob(pat))
+
+    return []
+
+
+def _apply_transforms(
+    arr: list[float],
+    transforms: list[dict[str, Any]],
+    per_engine_values: dict[str, float],
+) -> list[float] | None:
+    out = arr
+
+    for t in transforms or []:
+        ttype = t.get("type")
+
+        if ttype == "filter_nonzero":
+            out = [x for x in out if x != 0.0]
+            continue
+
+        if ttype == "divide_by_quantity":
+            q = t.get("quantity")
+            if not q:
+                return None
+            denom = per_engine_values.get(q)
+            if denom is None or denom == 0.0:
+                return None
+            out = [x / denom for x in out]
+            continue
+
+        if ttype == "square":
+            out = [x * x for x in out]
+            continue
+
+        # unknown transform
         return None
-    with h5py.File(output_path, "r") as f:
+
+    return out
+
+
+def _run_sort_key(p: Path) -> int:
+    m = re.search(r"run(\d+)", str(p))
+    return int(m.group(1)) if m else -1
+
+
+def extract_series_for_engine(
+    engine_cfg: dict[str, Any],
+    quantity: str,
+    main_output: Path,
+    per_engine_values: dict[str, float],
+) -> list[float] | None:
+    """
+    Extract an array-like quantity (csv/hdf5) according to dda_codes.json spec.
+    """
+    spec = engine_cfg.get(quantity)
+    if not spec:
+        spec = (engine_cfg.get("outputs") or {}).get(quantity)
+
+    if not spec:
+        return None
+
+    qtype = spec.get("type")
+    if qtype not in ("hdf5", "csv"):
+        return None
+
+    paths = _resolve_paths_from_spec(spec, main_output)
+    if not paths:
+        return None
+
+    select = spec.get("select", "first")
+    if select == "last_run":
+        paths = sorted(paths, key=_run_sort_key)
+        path = paths[-1]
+    else:
+        path = paths[0]
+
+    if qtype == "hdf5":
+        dataset = spec.get("dataset")
+        if not dataset:
+            return None
+        arr = _read_array_hdf5(path, dataset)
+    else:
+        sep = spec.get("sep", " ")
+        column = spec.get("column")
+        if not column:
+            return None
+        arr = _read_array_csv(path, sep, column)
+
+    if arr is None:
+        return None
+
+    transforms = spec.get("transforms", [])
+    if transforms:
+        arr = _apply_transforms(
+            arr, transforms, per_engine_values=per_engine_values
+        )
+
+    return arr
+
+
+def _read_array_hdf5(path: Path, dataset: str) -> list[float] | None:
+    if not path.exists():
+        return None
+    with h5py.File(path, "r") as f:
         data = f[dataset][()]
-    if index is not None:
-        return float(data[index])
-    return float(data)
+    # flatten + float
+    return [float(x) for x in data.ravel()]
+
+
+def _read_array_csv(path: Path, sep: str, column: str) -> list[float] | None:
+    if not path.exists():
+        return None
+    df = pd.read_csv(path, sep=sep)
+    if column not in df.columns:
+        return None
+    return [float(x) for x in df[column].to_numpy()]
 
 
 def extract_quantity_for_engine(
@@ -90,18 +223,22 @@ def extract_quantity_for_engine(
     if not spec:
         return None
 
+    qtype = spec.get("type", "text")
+    if qtype not in ("text", "text_vec3_norm"):
+        # arrays are handled by extract_series_for_engine()
+        return None
+
     pattern = spec["pattern"]
     unit_factor = spec.get("unit_factor", 1.0)
     take_last = spec.get("take_last", False)
-    type = spec["type"]
 
     # 1) try main file
-    val = read_quantity_from_text_file(
+    val = _read_quantity_from_text_file(
         main_output,
         pattern,
         unit_factor=unit_factor,
         take_last=take_last,
-        type=type,
+        type=qtype,
     )
     if val is not None:
         return val
@@ -119,12 +256,12 @@ def extract_quantity_for_engine(
             # relative / glob pattern: keep existing behaviour
             candidate_paths = list(base_dir.glob(extra_pat))
         for extra_path in candidate_paths:
-            val = read_quantity_from_text_file(
+            val = _read_quantity_from_text_file(
                 extra_path,
                 pattern,
                 unit_factor=unit_factor,
                 take_last=take_last,
-                type=type,
+                type=qtype,
             )
             if val is not None:
                 return val
@@ -132,33 +269,37 @@ def extract_quantity_for_engine(
     return None
 
 
-def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Path | None:
-    """
-    In a per-run working directory, ADDA writes something like:
-      <run_dir>/runXXX_.../IntField-Y
-    We search locally inside adda_run_dir.
-    """
-    for p in adda_run_dir.glob("run*/*IntField-Y"):
-        return p
-    return None
-
-
 def compute_internal_field_error(
-    ifdda_h5_path: Path, adda_csv_path: Path, norm: float
+    a: list[float],
+    b: list[float],
 ) -> float | None:
     """
-    Compare IFDDA HDF5 near field with ADDA CSV internal field, like before.
+    Mean absolute relative error: mean( abs((a_i - b_i) / b_i) )
     """
     try:
-        with h5py.File(ifdda_h5_path, "r") as f:
-            # print(list(f["Near Field"].keys()))
-            macro_modulus = f["Near Field/Macroscopic field modulus"][:]
-        adda_df = pd.read_csv(adda_csv_path, sep=" ")
-        valid_ifdda = macro_modulus[macro_modulus != 0] / norm
-        rel = (
-            abs((valid_ifdda**2 - adda_df["|E|^2"]) / adda_df["|E|^2"])
-        ).mean()
-        return rel
+        if not a or not b:
+            return None
+        if len(a) != len(b):
+            return None
+        n = min(len(a), len(b))
+        if n == 0:
+            return None
+
+        s = 0.0
+        k = 0
+
+        for i in range(n):
+            bi = b[i]
+            if bi == 0.0:
+                continue
+            ai = a[i]
+            s += abs((ai - bi) / bi)
+            k += 1
+
+        if k == 0:
+            return None
+        return s / k
+
     except Exception as e:
         logging.error(f"Internal field comparison failed: {e}")
         return None

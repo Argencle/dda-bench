@@ -31,7 +31,7 @@ def _resolve_env(engine_cfg: dict[str, Any]) -> dict[str, str] | None:
     return env
 
 
-def build_real_command(
+def _build_real_command(
     cmd: str, engine: str, engine_cfg: dict[str, Any]
 ) -> str:
     """
@@ -146,7 +146,7 @@ def _apply_prepare_steps(
             raise ValueError(f"Unknown prepare action: {action}")
 
 
-def run_command_with_stats(
+def _run_command_with_stats(
     command: str,
     stdout_path: Path,
     stderr_path: Path,
@@ -231,8 +231,8 @@ def run_case_command(
 
     _apply_prepare_steps(engine_cfg, run_dir, env, cmd)
 
-    real_cmd = build_real_command(cmd, engine, engine_cfg)
-    cpu_time, mem = run_command_with_stats(
+    real_cmd = _build_real_command(cmd, engine, engine_cfg)
+    cpu_time, mem = _run_command_with_stats(
         real_cmd,
         stdout_path=stdout_path,
         stderr_path=stderr_path,

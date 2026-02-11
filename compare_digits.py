@@ -12,7 +12,7 @@ from dda_bench.utils import clean_output_files
 DEFAULT_COMMAND_FILE = "tests/DDA_commands"
 
 
-def build_logger(check: bool) -> logging.Logger:
+def _build_logger(check: bool) -> logging.Logger:
     logger = logging.getLogger("compare_digits")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
@@ -37,7 +37,7 @@ def build_logger(check: bool) -> logging.Logger:
     return logger
 
 
-def parse_args() -> argparse.Namespace:
+def _parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Run DDA cases and compare matching digits across engines."
     )
@@ -80,7 +80,7 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
-    args = parse_args()
+    args = _parse_args()
 
     # runtime env
     os.environ["OMP_NUM_THREADS"] = str(args.omp)
@@ -107,7 +107,7 @@ def main() -> None:
     # load cases
     cases = read_command_cases(args.commands)
 
-    logger = build_logger(args.check)
+    logger = _build_logger(args.check)
 
     ok = process_all_cases(
         cases=cases,

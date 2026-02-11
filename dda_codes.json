@@ -43,6 +43,17 @@
         "unit_factor": 1.0
       }
     },
+    "int_field": {
+      "source": "run_dir",
+      "path": "ifdda.h5",
+      "type": "hdf5",
+      "dataset": "Near Field/Macroscopic field modulus",
+      "transforms": [
+        { "type": "filter_nonzero" },
+        { "type": "divide_by_quantity", "quantity": "E0" },
+        { "type": "square" }
+      ]
+    },
     "cleanup": {
       "remove_names": ["inputmatlab.mat", "filenameh5", "ifdda.h5", "shape_ifdda.dat"]
     }
@@ -95,6 +106,14 @@
         "pattern": "Cpr\\s*=\\s*\\(\\s*(?P<x>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<y>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<z>[0-9eE+\\.\\-]+)\\s*\\)",
         "unit_factor": 1e-12
       }
+    },
+    "int_field": {
+      "source": "run_dir_glob",
+      "pattern": "run*/*IntField-Y",
+      "type": "csv",
+      "sep": " ",
+      "column": "|E|^2",
+      "select": "last_run"
     },
     "cleanup": {
       "remove_globs": ["run*"],

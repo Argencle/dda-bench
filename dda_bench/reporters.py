@@ -8,7 +8,7 @@ from .executors import run_case_command
 from .extractors import (
     detect_engine_from_cmd,
     extract_quantity_for_engine,
-    find_adda_internal_field_in_dir,
+    extract_series_for_engine,
     compute_internal_field_error,
     extract_aeff_meters_for_engine,
 )
@@ -28,7 +28,7 @@ QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
 # ---------------------------------------------------------------------
 
 
-def write_case_results(
+def _write_case_results(
     case_id: str | None,
     per_engine_values: dict[str, dict[str, float]],
     output_dir: str,
@@ -358,7 +358,7 @@ def process_all_cases(
 ) -> bool:
     all_ok = True
     for case in cases:
-        ok = process_one_case(
+        ok = _process_one_case(
             case=case,
             engines_cfg=engines_cfg,
             output_dir=output_dir,
@@ -371,7 +371,7 @@ def process_all_cases(
     return all_ok
 
 
-def process_one_case(
+def _process_one_case(
     case: CommandCase,
     engines_cfg: dict[str, Any],
     output_dir: str,
@@ -567,39 +567,46 @@ def process_one_case(
             # --- int_field (only for cases that need it) ---
             if need_int:
                 q = "int_field"
-                # Compare only if the pair is ADDA+IFDDA
-                if {"adda", "ifdda"} <= {eng_i, eng_j} and tol_int is not None:
-                    (tol_int_min, tol_int_max) = tol_int
 
-                    adda_dirs = per_engine_run_dirs.get("adda", [])
-                    ifdda_dirs = per_engine_run_dirs.get("ifdda", [])
+                if tol_int is None:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                else:
+                    tol_int_min, tol_int_max = tol_int
 
-                    adda_run = adda_dirs[0] if adda_dirs else None
-                    ifdda_run = ifdda_dirs[0] if ifdda_dirs else None
+                    # stdout paths for THIS pair
+                    out_i = (per_engine_files.get(eng_i) or [None])[0]
+                    out_j = (per_engine_files.get(eng_j) or [None])[0]
 
-                    adda_csv = (
-                        find_adda_internal_field_in_dir(adda_run)
-                        if adda_run
-                        else None
-                    )
-                    ifdda_h5 = (ifdda_run / "ifdda.h5") if ifdda_run else None
-                    ifdda_files = per_engine_files.get("ifdda", [])
-                    ifdda_out = ifdda_files[0] if ifdda_files else None
+                    if not out_i or not out_j:
+                        # if the case requires int_field, missing outputs fail
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
+                    else:
+                        cfg_i = engines_cfg.get(eng_i, {})
+                        cfg_j = engines_cfg.get(eng_j, {})
 
-                    if (
-                        adda_csv
-                        and adda_csv.exists()
-                        and ifdda_h5
-                        and ifdda_h5.exists()
-                        and ifdda_out
-                        and ifdda_out.exists()
-                    ):
-                        norm = per_engine_values.get("ifdda", {}).get("E0")
-                        if norm:
+                        series_i = extract_series_for_engine(
+                            cfg_i,
+                            q,
+                            out_i,
+                            per_engine_values=per_engine_values.get(eng_i, {}),
+                        )
+                        series_j = extract_series_for_engine(
+                            cfg_j,
+                            q,
+                            out_j,
+                            per_engine_values=per_engine_values.get(eng_j, {}),
+                        )
+
+                        if series_i and series_j:
                             rel = compute_internal_field_error(
-                                ifdda_h5, adda_csv, norm
+                                series_i, series_j
                             )
-                            d = matching_digits_from_rel_err(rel)
+                            d = (
+                                matching_digits_from_rel_err(rel)
+                                if rel is not None
+                                else None
+                            )
 
                             if d is None:
                                 line_parts.append(f"{q:<{QNAME_W}}:NA❌")
@@ -612,14 +619,9 @@ def process_one_case(
                                 if bad:
                                     pair_failed = True
                         else:
+                            # Case requires int_field but don't provide it
                             line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                             pair_failed = True
-                    else:
-                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
-                        pair_failed = True
-                else:
-                    # Case requires int_field but this pair can't compare it
-                    line_parts.append(f"{q:<{QNAME_W}}:NA")
 
             # --- force (only for cases that need it) ---
             if need_force:
@@ -723,7 +725,7 @@ def process_one_case(
                 logger.info(line_str)
 
     # 4) persist results
-    write_case_results(
+    _write_case_results(
         case_id=case_id,
         per_engine_values=per_engine_values,
         output_dir=output_dir,

@@ -42,7 +42,7 @@ def matching_digits_from_rel_err(
     return d
 
 
-def cpr_from_force(force_n: float, e0_field: float) -> float | None:
+def _cpr_from_force(force_n: float, e0_field: float) -> float | None:
     """
     From: F = Cpr * |E0|^2 * eps0 / 2
     => Cpr = 2F / (eps0 * |E0|^2)
@@ -73,7 +73,7 @@ def aligned_force_metric(
         return "Cpr", v["Cpr"]
 
     if "force" in v and "E0" in v:
-        cpr = cpr_from_force(v["force"], v["E0"])
+        cpr = _cpr_from_force(v["force"], v["E0"])
         return ("Cpr*", cpr)
 
     if "force" in v:

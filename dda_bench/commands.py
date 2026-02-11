@@ -149,7 +149,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
                     f"Case '{current_id}' in {command_file} has @need_force but is missing @tol_force: <min> <max>."
                 )
 
-    def flush_current() -> None:
+    def _flush_current() -> None:
         nonlocal current_id, current_cmds, current_meta
 
         # do nothing if no active case
@@ -196,7 +196,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
             # case tag
             # --------------------
             if stripped.startswith("#") and "@case:" in stripped:
-                flush_current()
+                _flush_current()
                 parts = stripped.split("@case:", 1)
                 current_id = parts[1].strip()
 
@@ -309,7 +309,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
             current_cmds.append((stripped, lineno))
 
     # flush last active case
-    flush_current()
+    _flush_current()
     return cases
 
 
