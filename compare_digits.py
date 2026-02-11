@@ -97,6 +97,8 @@ def main() -> None:
         "Qabs",
         "int_field",
         "force",
+        "E0",
+        "Cpr",
     ]
 
     output_dir = args.output

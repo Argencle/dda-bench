@@ -5,10 +5,10 @@ import math
 import h5py
 import pandas as pd
 from pathlib import Path
-from typing import Tuple, Optional, Dict, Any, List
+from typing import Optional, Any
 
 
-def load_engine_config(path: Path) -> Dict[str, Any]:
+def load_engine_config(path: Path) -> dict[str, Any]:
     """
     Load dda_codes.json.
     """
@@ -16,7 +16,7 @@ def load_engine_config(path: Path) -> Dict[str, Any]:
         return json.load(f)
 
 
-def detect_engine_from_cmd(cmd: str, engines_cfg: Dict[str, Any]) -> str:
+def detect_engine_from_cmd(cmd: str, engines_cfg: dict[str, Any]) -> str:
     """
     Look for any of the 'detect_substrings' of each engine.
     """
@@ -32,6 +32,7 @@ def read_quantity_from_text_file(
     pattern: str,
     unit_factor: float = 1.0,
     take_last: bool = False,
+    type: str = "text",
 ) -> Optional[float]:
     if not output_path.exists():
         return None
@@ -51,6 +52,12 @@ def read_quantity_from_text_file(
     if match is None:
         return None
 
+    if type == "text_vec3_norm":
+        x = float(match.group("x"))
+        y = float(match.group("y"))
+        z = float(match.group("z"))
+        return math.sqrt(x**2 + y**2 + z**2) * unit_factor
+
     value = float(match.group("value"))
     return value * unit_factor
 
@@ -68,8 +75,7 @@ def read_quantity_from_hdf5(
 
 
 def extract_quantity_for_engine(
-    engine: str,
-    engine_cfg: Dict[str, Any],
+    engine_cfg: dict[str, Any],
     quantity: str,
     main_output: Path,
 ) -> Optional[float]:
@@ -87,6 +93,7 @@ def extract_quantity_for_engine(
     pattern = spec["pattern"]
     unit_factor = spec.get("unit_factor", 1.0)
     take_last = spec.get("take_last", False)
+    type = spec["type"]
 
     # 1) try main file
     val = read_quantity_from_text_file(
@@ -94,12 +101,13 @@ def extract_quantity_for_engine(
         pattern,
         unit_factor=unit_factor,
         take_last=take_last,
+        type=type,
     )
     if val is not None:
         return val
 
     # 2) try extra files
-    extra_patterns: List[str] = engine_cfg.get("extra_files", [])
+    extra_patterns: list[str] = engine_cfg.get("extra_files", [])
     base_dir = main_output.parent
     for extra_pat in extra_patterns:
         pat_path = Path(extra_pat)
@@ -116,54 +124,12 @@ def extract_quantity_for_engine(
                 pattern,
                 unit_factor=unit_factor,
                 take_last=take_last,
+                type=type,
             )
             if val is not None:
                 return val
 
     return None
-
-
-def extract_cpr_from_adda(
-    file_path: Path,
-) -> Optional[Tuple[float, float, float]]:
-    text = file_path.read_text()
-    pattern = (
-        r"Cpr\s*=\s*\("
-        r"\s*([0-9eE+.\-]+),"
-        r"\s*([0-9eE+.\-]+),"
-        r"\s*([0-9eE+.\-]+)\s*\)"
-    )
-    match = re.search(pattern, text)
-    if not match:
-        return None
-    return (
-        float(match.group(1)),
-        float(match.group(2)),
-        float(match.group(3)),
-    )
-
-
-def extract_force_from_ifdda(file_path: Path) -> Optional[float]:
-    """
-    Read 'Modulus of the force : <val>' from IFDDA.
-    """
-    text = file_path.read_text()
-    m = re.search(r"Modulus of the force\s*:\s*([0-9eE+.\-]+)", text)
-    if not m:
-        return None
-    return float(m.group(1))
-
-
-def extract_field_norm_from_ifdda(file_path: Path) -> Optional[float]:
-    """
-    Read the normalizing field from IFDDA text:
-    'Field : (2447309.3783,0.0) V/m'
-    """
-    text = file_path.read_text()
-    m = re.search(r"Field\s*:\s*\(\s*([0-9.eE+-]+)", text)
-    if not m:
-        return None
-    return float(m.group(1))
 
 
 def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Optional[Path]:
@@ -210,7 +176,7 @@ def _to_meters(val: float, unit: str) -> float:
     return val
 
 
-def _read_first_match(paths: List[Path], pattern: str) -> Optional[float]:
+def _read_first_match(paths: list[Path], pattern: str) -> Optional[float]:
     rgx = re.compile(pattern)
     for p in paths:
         if not p.exists():
@@ -223,10 +189,9 @@ def _read_first_match(paths: List[Path], pattern: str) -> Optional[float]:
 
 
 def extract_aeff_meters_for_engine(
-    engine: str,
-    engine_cfg: Dict[str, Any],
+    engine_cfg: dict[str, Any],
     stdout_path: Path,
-    extra_paths: List[Path],
+    extra_paths: list[Path],
 ) -> Optional[float]:
     """
     Returns aeff in meters if it can be obtained from outputs.

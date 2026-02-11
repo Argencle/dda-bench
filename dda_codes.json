@@ -36,6 +36,11 @@
         "type": "text",
         "pattern": "Modulus of the force\\s*:\\s*(?P<value>[0-9eE+\\.-]+)",
         "unit_factor": 1.0
+      },
+      "E0": {
+        "type": "text",
+        "pattern": "Field\\s*:\\s*\\(\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
       }
     },
     "cleanup": {
@@ -84,6 +89,11 @@
         "pattern": "RE_001\\s*=\\s*(?P<value>[0-9.eE+-]+)",
         "unit_factor": 1.0,
         "take_last": true
+      },
+      "Cpr": {
+        "type": "text_vec3_norm",
+        "pattern": "Cpr\\s*=\\s*\\(\\s*(?P<x>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<y>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<z>[0-9eE+\\.\\-]+)\\s*\\)",
+        "unit_factor": 1e-12
       }
     },
     "cleanup": {

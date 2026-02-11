@@ -2,20 +2,21 @@ import csv
 import json
 import math
 from pathlib import Path
-from typing import List, Tuple, Dict, Any, Optional, Set
+from typing import Optional, Any
 from .commands import CommandCase
 from .executors import run_case_command
 from .extractors import (
     detect_engine_from_cmd,
     extract_quantity_for_engine,
-    extract_cpr_from_adda,
-    extract_force_from_ifdda,
-    extract_field_norm_from_ifdda,
     find_adda_internal_field_in_dir,
     compute_internal_field_error,
     extract_aeff_meters_for_engine,
 )
-from .utils import compute_rel_err, matching_digits_from_rel_err
+from .utils import (
+    compute_rel_err,
+    matching_digits_from_rel_err,
+    aligned_force_metric,
+)
 
 # display widths
 CASE_W = 45
@@ -29,7 +30,7 @@ QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
 
 def write_case_results(
     case_id: Optional[str],
-    per_engine_values: Dict[str, Dict[str, float]],
+    per_engine_values: dict[str, dict[str, float]],
     output_dir: str,
 ) -> None:
     if not case_id:
@@ -39,7 +40,7 @@ def write_case_results(
     case_dir.mkdir(parents=True, exist_ok=True)
 
     out = case_dir / "results.json"
-    data: Dict[str, Any] = {"case": case_id, "engines": {}}
+    data: dict[str, Any] = {"case": case_id, "engines": {}}
 
     for eng, vals in per_engine_values.items():
         data["engines"][eng] = dict(vals)
@@ -49,7 +50,7 @@ def write_case_results(
 
 def write_summary_csv(output_dir: str, csv_path: str) -> None:
     out = Path(output_dir)
-    rows: List[Dict[str, Any]] = []
+    rows: list[dict[str, Any]] = []
 
     for result_file in out.glob("*/results.json"):
         data = json.loads(result_file.read_text())
@@ -75,8 +76,8 @@ def write_summary_csv(output_dir: str, csv_path: str) -> None:
 
 
 def _parse_int_pair(
-    meta: Dict[str, str], kmin: str, kmax: str
-) -> Optional[Tuple[int, int]]:
+    meta: dict[str, str], kmin: str, kmax: str
+) -> Optional[tuple[int, int]]:
     if kmin not in meta and kmax not in meta:
         return None
     if kmin not in meta or kmax not in meta:
@@ -94,12 +95,12 @@ def _parse_int_pair(
 
 def _case_tol_ranges(
     case: CommandCase,
-) -> Tuple[
-    Tuple[int, int],
-    Tuple[int, int],
-    Tuple[int, int],
-    Optional[Tuple[int, int]],
-    Optional[Tuple[int, int]],
+) -> tuple[
+    tuple[int, int],
+    tuple[int, int],
+    tuple[int, int],
+    Optional[tuple[int, int]],
+    Optional[tuple[int, int]],
 ]:
     """
     Rules (enforced by read_command_cases()):
@@ -173,8 +174,8 @@ def _case_tol_ranges(
 
 def _parse_skip_pairs(
     case: CommandCase,
-    engines_cfg: Dict[str, Any],
-) -> Set[Tuple[str, str]]:
+    engines_cfg: dict[str, Any],
+) -> set[tuple[str, str]]:
     """
     meta["skip_pairs"] is a list of (engineA, engineB) tuples.
     Returns a symmetric set containing (a,b) and (b,a).
@@ -192,7 +193,7 @@ def _parse_skip_pairs(
             f"Case '{case.case_id}': meta['skip_pairs'] must be a list of pairs"
         )
 
-    out: Set[Tuple[str, str]] = set()
+    out: set[tuple[str, str]] = set()
     for pair in raw:
         if (
             not isinstance(pair, tuple)
@@ -230,7 +231,7 @@ def _parse_skip_pairs(
 
 
 def _fill_cq(
-    vals: Dict[str, float], src: Dict[str, str], aeff_m: float
+    vals: dict[str, float], src: dict[str, str], aeff_m: float
 ) -> None:
     """
     Ensure we have (Cext,Cabs,Qext,Qabs) when possible.
@@ -271,15 +272,15 @@ def _digits(a: float, b: float) -> Optional[int]:
 
 
 def _compare_extabs(
-    per_vals: Dict[str, Dict[str, float]],
-    per_src: Dict[str, Dict[str, str]],
+    per_vals: dict[str, dict[str, float]],
+    per_src: dict[str, dict[str, str]],
     eng_i: str,
     eng_j: str,
     c_key: str,
     q_key: str,
     tol_min: int,
     tol_max: int,
-) -> Tuple[str, bool]:
+) -> tuple[str, bool]:
     """
     Returns:
       (display_token, failed_bool)
@@ -348,11 +349,11 @@ def _compare_extabs(
 
 
 def process_all_cases(
-    cases: List[CommandCase],
-    engines_cfg: Dict[str, Any],
+    cases: list[CommandCase],
+    engines_cfg: dict[str, Any],
     output_dir: str,
     logger,
-    quantities: List[str],
+    quantities: list[str],
     with_stats: bool,
 ) -> bool:
     all_ok = True
@@ -372,10 +373,10 @@ def process_all_cases(
 
 def process_one_case(
     case: CommandCase,
-    engines_cfg: Dict[str, Any],
+    engines_cfg: dict[str, Any],
     output_dir: str,
     logger,
-    quantities: List[str],
+    quantities: list[str],
     with_stats: bool,
 ) -> bool:
     case_id = case.case_id
@@ -386,6 +387,8 @@ def process_one_case(
     (tol_ext_min, tol_ext_max) = tol_ext
     (tol_abs_min, tol_abs_max) = tol_abs
     (tol_res_min, tol_res_max) = tol_res
+    (tol_int_min, tol_int_max) = tol_int if tol_int else (None, None)
+    (tol_force_min, tol_force_max) = tol_force if tol_force else (None, None)
 
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
@@ -396,7 +399,7 @@ def process_one_case(
     # - Always extract the base quantities requested by caller (typically C/Q/residual)
     # - Only extract/display int_field/force if the case declares it
     base_quantities = list(quantities)
-    case_quantities: List[str] = []
+    case_quantities: list[str] = []
     for q in base_quantities:
         if q == "int_field" and not need_int:
             continue
@@ -410,11 +413,11 @@ def process_one_case(
         case_quantities.append("force")
 
     # 1) run all commands
-    per_engine_values: Dict[str, Dict[str, float]] = {}
-    per_engine_sources: Dict[str, Dict[str, str]] = {}  # raw/derived
-    per_engine_stats: Dict[str, Tuple[Optional[float], Optional[int]]] = {}
-    per_engine_files: Dict[str, List[Path]] = {}  # stdout files
-    per_engine_run_dirs: Dict[str, List[Path]] = {}  # working dirs
+    per_engine_values: dict[str, dict[str, float]] = {}
+    per_engine_sources: dict[str, dict[str, str]] = {}  # raw/derived
+    per_engine_stats: dict[str, tuple[Optional[float], Optional[int]]] = {}
+    per_engine_files: dict[str, list[Path]] = {}  # stdout files
+    per_engine_run_dirs: dict[str, list[Path]] = {}  # working dirs
 
     for cmd_idx, (cmd, lineno) in enumerate(case_cmds):
         engine = detect_engine_from_cmd(cmd, engines_cfg)
@@ -438,9 +441,7 @@ def process_one_case(
         per_engine_sources.setdefault(engine, {})
 
         for q in case_quantities:
-            val = extract_quantity_for_engine(
-                engine, engine_cfg, q, stdout_path
-            )
+            val = extract_quantity_for_engine(engine_cfg, q, stdout_path)
             if val is not None:
                 per_engine_values[engine][q] = val
                 per_engine_sources[engine][q] = "raw"
@@ -457,7 +458,7 @@ def process_one_case(
     case_failed = False
 
     # 2) compute AEFF + fill missing C<->Q for results (always)
-    per_engine_aeff: Dict[str, float] = {}
+    per_engine_aeff: dict[str, float] = {}
     for eng, files in per_engine_files.items():
         stdout0 = files[0] if files else None
         if not stdout0:
@@ -465,12 +466,11 @@ def process_one_case(
 
         # extra paths live in run_dir (same directory as stdout files)
         run_dir = stdout0.parent
-        extra_paths: List[Path] = []
+        extra_paths: list[Path] = []
         for pat in engines_cfg.get(eng, {}).get("extra_files", []):
             extra_paths += list(run_dir.glob(pat))
 
         aeff_m = extract_aeff_meters_for_engine(
-            eng,
             engines_cfg.get(eng, {}),
             stdout_path=stdout0,
             extra_paths=extra_paths,
@@ -594,7 +594,7 @@ def process_one_case(
                         and ifdda_out
                         and ifdda_out.exists()
                     ):
-                        norm = extract_field_norm_from_ifdda(ifdda_out)
+                        norm = per_engine_values.get("ifdda", {}).get("E0")
                         if norm:
                             rel = compute_internal_field_error(
                                 ifdda_h5, adda_csv, norm
@@ -624,56 +624,51 @@ def process_one_case(
             # --- force (only for cases that need it) ---
             if need_force:
                 q = "force"
-                if {"adda", "ifdda"} <= {
-                    eng_i,
-                    eng_j,
-                } and tol_force is not None:
-                    (tol_force_min, tol_force_max) = tol_force
 
-                    adda_files = per_engine_files.get("adda", [])
-                    ifdda_files = per_engine_files.get("ifdda", [])
-                    adda_out = adda_files[0] if adda_files else None
-                    ifdda_out = ifdda_files[0] if ifdda_files else None
+                # We always try to compare a consistent metric:
+                # Prefer Cpr (raw), else derive Cpr from (force,E0).
+                name_i, v_i = aligned_force_metric(eng_i, per_engine_values)
+                name_j, v_j = aligned_force_metric(eng_j, per_engine_values)
 
-                    if (
-                        adda_out
-                        and adda_out.exists()
-                        and ifdda_out
-                        and ifdda_out.exists()
-                    ):
-                        cpr = extract_cpr_from_adda(adda_out)
-                        ifdda_force = extract_force_from_ifdda(ifdda_out)
-                        ifdda_force = (
-                            (ifdda_force * 1e12) if ifdda_force else None
-                        )
-                        norm = extract_field_norm_from_ifdda(ifdda_out)
+                # If one side is Cpr/Cpr* and the other is force,
+                # we refuse comparison as they are not directly comparable
+                consistent = True
+                if (name_i.startswith("Cpr") and name_j == "force") or (
+                    name_j.startswith("Cpr") and name_i == "force"
+                ):
+                    consistent = False
 
-                        if cpr and ifdda_force and norm:
-                            eps0 = 8.854187817620389e-12
-                            fx, fy, fz = (c * norm**2 * eps0 / 2 for c in cpr)
-                            adda_force = (fx**2 + fy**2 + fz**2) ** 0.5
-
-                            rel = compute_rel_err(ifdda_force, adda_force)
-                            d = matching_digits_from_rel_err(rel)
-
-                            if d is None:
-                                line_parts.append(f"{q:<{QNAME_W}}:NA❌")
-                                pair_failed = True
-                            else:
-                                bad = d < tol_force_min or d > tol_force_max
-                                line_parts.append(
-                                    f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
-                                )
-                                if bad:
-                                    pair_failed = True
-                        else:
-                            line_parts.append(f"{q:<{QNAME_W}}:NA❌")
-                            pair_failed = True
-                    else:
+                if not consistent:
+                    # No meaningful comparison for this pair
+                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                elif v_i is None or v_j is None:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                    pair_failed = True
+                else:
+                    rel = compute_rel_err(v_i, v_j)
+                    d = matching_digits_from_rel_err(rel)
+                    if d is None:
                         line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                         pair_failed = True
-                else:
-                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                    else:
+                        tol_force_min, tol_force_max = (
+                            tol_force if tol_force else (0, 10**9)
+                        )
+                        bad = d < tol_force_min or d > tol_force_max
+
+                        # display which metric was used
+                        # examples: "12Cpr", "9Cpr*", "7force"
+                        label = (
+                            name_i
+                            if name_i == name_j
+                            else (name_i if "*" in name_i else name_j)
+                        )
+
+                        line_parts.append(
+                            f"{q:<{QNAME_W}}:{d}{label}{'❌' if bad else ''}"
+                        )
+                        if bad:
+                            pair_failed = True
 
             # --- other generic scalar compares (optional, still supported) ---
             for q in case_quantities:
@@ -685,6 +680,8 @@ def process_one_case(
                     "residual1",
                     "int_field",
                     "force",
+                    "E0",
+                    "Cpr",
                 ):
                     continue
 

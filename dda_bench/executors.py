@@ -2,15 +2,15 @@ import os
 import subprocess
 import shutil
 from pathlib import Path
-from typing import Optional, Tuple, Dict, Any
+from typing import Optional, Any
 from .commands import parse_command_lines
 
 REPO_ROOT = Path.cwd()
 
 
 def _resolve_env(
-    engine_cfg: Dict[str, Any], run_dir: Path
-) -> Optional[Dict[str, str]]:
+    engine_cfg: dict[str, Any], run_dir: Path
+) -> Optional[dict[str, str]]:
     """
     Build an env dict based on engine_cfg["env"].
     Values can be:
@@ -34,7 +34,7 @@ def _resolve_env(
 
 
 def build_real_command(
-    cmd: str, engine: str, engine_cfg: Dict[str, Any]
+    cmd: str, engine: str, engine_cfg: dict[str, Any]
 ) -> str:
     """
     Turn the 'logical' command from the tests file into the real one
@@ -68,7 +68,7 @@ def _symlink(src: Path, dst: Path) -> None:
     dst.symlink_to(src)
 
 
-def _should_run_step(step: Dict[str, Any], cmd: str) -> bool:
+def _should_run_step(step: dict[str, Any], cmd: str) -> bool:
     """
     Optional condition for a step:
       - "when_contains": string or list[str]
@@ -86,7 +86,7 @@ def _should_run_step(step: Dict[str, Any], cmd: str) -> bool:
 
 
 def _apply_prepare_steps(
-    engine_cfg: Dict[str, Any], run_dir: Path, env: Dict[str, str], cmd: str
+    engine_cfg: dict[str, Any], run_dir: Path, env: dict[str, str], cmd: str
 ) -> None:
     """
     Execute prepare steps declared in dda_codes.json.
@@ -155,8 +155,8 @@ def run_command_with_stats(
     time_path: Optional[Path],
     with_stats: bool,
     cwd: Path,
-    env: Optional[Dict[str, str]] = None,
-) -> Tuple[Optional[float], Optional[int]]:
+    env: Optional[dict[str, str]] = None,
+) -> tuple[Optional[float], Optional[int]]:
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
     if with_stats:
@@ -204,12 +204,12 @@ def run_command_with_stats(
 def run_case_command(
     cmd: str,
     engine: str,
-    engine_cfg: Dict[str, Any],
+    engine_cfg: dict[str, Any],
     case_id: Optional[str],
     cmd_idx: int,
     output_dir: str,
     with_stats: bool,
-) -> Tuple[Path, Path, Optional[float], Optional[int]]:
+) -> tuple[Path, Path, Optional[float], Optional[int]]:
     """
     Execute one command in:
       outputs/<case_id>/<engine>/

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Optional, Any
 
 
 @dataclass
@@ -16,17 +16,17 @@ class CommandCase:
       - tol_res_min/tol_res_max   (required)
       - tol_int_min/tol_int_max   (optional)
       - tol_force_min/tol_force_max (optional)
-      - skip_pairs: List[Tuple[str,str]] (optional)
+      - skip_pairs: list[tuple[str,str]] (optional)
     """
 
     case_id: Optional[str]
-    commands: List[Tuple[str, int]]
-    meta: Dict[str, Any]
+    commands: list[tuple[str, int]]
+    meta: dict[str, Any]
 
 
 def _parse_pair_tag(
     stripped: str, tag: str, lineno: int, command_file: str
-) -> Tuple[str, str]:
+) -> tuple[str, str]:
     """
     Parse a tag line like:
       # @tol: 4 7
@@ -41,7 +41,7 @@ def _parse_pair_tag(
     return parts[0], parts[1]
 
 
-def read_command_cases(command_file: str) -> List[CommandCase]:
+def read_command_cases(command_file: str) -> list[CommandCase]:
     """
     Read the file and return a list of cases.
 
@@ -64,11 +64,11 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
       - # @tol_force: <min> <max>
       - # @skip_pairs: <engine1> <engine2> <engine3> <engine4> ...
     """
-    cases: List[CommandCase] = []
+    cases: list[CommandCase] = []
 
     current_id: Optional[str] = None
-    current_cmds: List[Tuple[str, int]] = []
-    current_meta: Dict[str, Any] = {}
+    current_cmds: list[tuple[str, int]] = []
+    current_meta: dict[str, Any] = {}
 
     seen_ids: set[str] = set()
 
