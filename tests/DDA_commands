@@ -108,7 +108,7 @@ ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolin
 #----------Filtered Coupled Dipoles----------#
 adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 1 0 0
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -prop 90 0
-ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -run
+ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ NOTORQ -ETASCA 10 -run
 # @case: sphere_ildr_qmr
 # @tol: 11 16
 # @tol_res: 11 16
@@ -353,3 +353,19 @@ ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tol
 #----------Solver precision force (inhomogeneous)----------#
 adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -Cpr
 ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 1 -nforce 1 1 0 0
+# @case: sphere_rrc_qmr_torque_etasca=0.01
+# @tol: 11 16
+# @tol_res: 11 16 
+# @need_torque
+# @tol_torque: 11 16
+#----------Max possible precision for torque----------#
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -nforce 1 1 1 1 -prop 90 0 -beam pwavecircular -1
+ddscatcli -CMDSOL PBCGST -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ DOTORQ -ETASCA 0.01 -run
+# @case: sphere_rrc_qmr_torque_etasca=10
+# @tol: 11 16
+# @tol_res: 11 16 
+# @need_torque
+# @tol_torque: 11 16
+#----------Low precision for torque----------#
+ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -nforce 1 1 1 1 -prop 90 0 -beam pwavecircular -1
+ddscatcli -CMDSOL PBCGST -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ DOTORQ -ETASCA 10 -run

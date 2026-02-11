@@ -7,8 +7,6 @@
 
 * **Ajouter la comparaison du moment dipolaire**
 
-* **Ajouter la comparaison du torque**
-
 * **Ajouter les quantités recalculées dans `results.json` et `summary.csv`**
 
 ---

@@ -2,7 +2,8 @@ import math
 import shutil
 from pathlib import Path
 
-EPS0 = 8.854187817620389e-12  # F/m (vacuum permittivity)
+_EPS0 = 8.854187817620389e-12  # F/m (vacuum permittivity)
+_TWO_PI = 2.0 * math.pi
 
 
 def compute_rel_err(val1: float | None, val2: float | None) -> float | None:
@@ -48,11 +49,48 @@ def _cpr_from_force(force_n: float, e0_field: float) -> float | None:
     => Cpr = 2F / (eps0 * |E0|^2)
     Returns Cpr in m^2.
     """
-    if force_n is None or e0_field is None:
-        return None
     if e0_field == 0.0:
         return None
-    return 2.0 * force_n / (EPS0 * (e0_field**2))
+    return 2.0 * force_n / (_EPS0 * (e0_field**2))
+
+
+def _qtrq_from_torque(
+    torque_nm: float, lambda_m: float, aeff_m: float, e0_field: float
+) -> float | None:
+    """
+    From: T_rad = Qtrq * pi * aeff^2 * |E0|^2 * eps0 / (2k)
+    =>  Qtrq = T_rad * (2k) / (pi * aeff^2 * eps0 * |E0|^2)
+    Returns Qtrq dimensionless.
+    """
+    if lambda_m == 0.0 or aeff_m == 0.0 or e0_field == 0.0:
+        return None
+    k = _TWO_PI / lambda_m
+    return (
+        torque_nm * (2.0 * k) / (math.pi * aeff_m**2 * _EPS0 * (e0_field**2))
+    )
+
+
+def aligned_torque_metric(
+    eng: str, vals: dict[str, dict[str, float]]
+) -> tuple[str, float | None]:
+    """
+    Return (metric_name, value) for torque comparison for one engine.
+
+    Priority:
+      1) if "Qtrq" exists => ("Qtrq", Qtrq)
+      2) else if ("torque", "lambda", "aeff", "E0") exist => ("Qtrq*", Qtrq_from_torque)
+      3) else => ("NA", None)
+    """
+    v = vals.get(eng, {})
+
+    if "Qtrq" in v:
+        return "Qtrq", v["Qtrq"]
+
+    if "torque" in v and "lambda" in v and "aeff" in v and "E0" in v:
+        qtrq = _qtrq_from_torque(v["torque"], v["lambda"], v["aeff"], v["E0"])
+        return ("Qtrq*", qtrq)
+
+    return "NA", None
 
 
 def aligned_force_metric(

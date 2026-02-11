@@ -11,11 +11,13 @@ from .extractors import (
     extract_series_for_engine,
     compute_internal_field_error,
     extract_aeff_meters_for_engine,
+    extract_lambda_meters_for_engine,
 )
 from .utils import (
     compute_rel_err,
     matching_digits_from_rel_err,
     aligned_force_metric,
+    aligned_torque_metric,
 )
 
 # display widths
@@ -101,6 +103,7 @@ def _case_tol_ranges(
     tuple[int, int],
     tuple[int, int] | None,
     tuple[int, int] | None,
+    tuple[int, int] | None,
 ]:
     """
     Rules (enforced by read_command_cases()):
@@ -114,9 +117,10 @@ def _case_tol_ranges(
     Optional (but can be required if the case is tagged need_int/need_force):
       - @tol_int: <min> <max>
       - @tol_force: <min> <max>
+      - @tol_torque: <min> <max>
 
     Returns:
-      (tol_ext, tol_abs, tol_res, tol_int_or_none, tol_force_or_none)
+      (tol_ext, tol_abs, tol_res, tol_int_or_none, tol_force_or_none, tol_torque_or_none)
     """
     meta = case.meta or {}
 
@@ -133,8 +137,10 @@ def _case_tol_ranges(
 
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
+    need_torque = meta.get("need_torque") == "1"
     tol_int = _parse_int_pair(meta, "tol_int_min", "tol_int_max")
     tol_force = _parse_int_pair(meta, "tol_force_min", "tol_force_max")
+    tol_torque = _parse_int_pair(meta, "tol_torque_min", "tol_torque_max")
 
     if tol is not None:
         # forbid mixing (safety; normally already validated)
@@ -151,7 +157,11 @@ def _case_tol_ranges(
             raise ValueError(
                 f"Case '{case.case_id}' has @need_force but no @tol_force."
             )
-        return tol, tol, tol_res, tol_int, tol_force
+        if need_torque and tol_torque is None:
+            raise ValueError(
+                f"Case '{case.case_id}' has @need_torque but no @tol_torque."
+            )
+        return tol, tol, tol_res, tol_int, tol_force, tol_torque
 
     # no @tol => need ext+abs (safety; normally already validated)
     if tol_ext is None or tol_abs is None:
@@ -168,8 +178,12 @@ def _case_tol_ranges(
         raise ValueError(
             f"Case '{case.case_id}' has @need_force but no @tol_force."
         )
+    if need_torque and tol_torque is None:
+        raise ValueError(
+            f"Case '{case.case_id}' has @need_torque but no @tol_torque."
+        )
 
-    return tol_ext, tol_abs, tol_res, tol_int, tol_force
+    return tol_ext, tol_abs, tol_res, tol_int, tol_force, tol_torque
 
 
 def _parse_skip_pairs(
@@ -383,34 +397,48 @@ def _process_one_case(
     case_cmds = case.commands
     meta = case.meta or {}
 
-    (tol_ext, tol_abs, tol_res, tol_int, tol_force) = _case_tol_ranges(case)
+    (tol_ext, tol_abs, tol_res, tol_int, tol_force, tol_torque) = (
+        _case_tol_ranges(case)
+    )
     (tol_ext_min, tol_ext_max) = tol_ext
     (tol_abs_min, tol_abs_max) = tol_abs
     (tol_res_min, tol_res_max) = tol_res
     (tol_int_min, tol_int_max) = tol_int if tol_int else (None, None)
     (tol_force_min, tol_force_max) = tol_force if tol_force else (None, None)
+    (tol_torque_min, tol_torque_max) = (
+        tol_torque if tol_torque else (None, None)
+    )
 
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
+    need_torque = meta.get("need_torque") == "1"
 
     skip_pairs = _parse_skip_pairs(case, engines_cfg)
 
     # Build per-case quantities:
     # - Always extract the base quantities requested by caller (typically C/Q/residual)
-    # - Only extract/display int_field/force if the case declares it
+    # - Only extract/display int_field/force/torque metrics if the case declares them
     base_quantities = list(quantities)
     case_quantities: list[str] = []
     for q in base_quantities:
         if q == "int_field" and not need_int:
             continue
-        if q == "force" and not need_force:
+        if q == "E0" and not (need_int or need_force or need_torque):
+            continue
+        if q in ("force", "Cpr") and not need_force:
+            continue
+        if q in ("torque", "Qtrq") and not need_torque:
             continue
         case_quantities.append(q)
     # Ensure required ones exist even if caller didn't include them
     if need_int and "int_field" not in case_quantities:
         case_quantities.append("int_field")
+    if (need_int or need_force or need_torque) and "E0" not in case_quantities:
+        case_quantities.append("E0")
     if need_force and "force" not in case_quantities:
         case_quantities.append("force")
+    if need_torque and "torque" not in case_quantities:
+        case_quantities.append("torque")
 
     # 1) run all commands
     per_engine_values: dict[str, dict[str, float]] = {}
@@ -419,7 +447,7 @@ def _process_one_case(
     per_engine_files: dict[str, list[Path]] = {}  # stdout files
     per_engine_run_dirs: dict[str, list[Path]] = {}  # working dirs
 
-    for cmd_idx, (cmd, lineno) in enumerate(case_cmds):
+    for cmd_idx, (cmd, _) in enumerate(case_cmds):
         engine = detect_engine_from_cmd(cmd, engines_cfg)
         engine_cfg = engines_cfg.get(engine, {})
 
@@ -479,11 +507,11 @@ def _process_one_case(
             per_engine_aeff[eng] = aeff_m
 
     for eng, aeff_m in per_engine_aeff.items():
-        _fill_cq(
-            per_engine_values.setdefault(eng, {}),
-            per_engine_sources.setdefault(eng, {}),
-            aeff_m,
-        )
+        vals = per_engine_values.setdefault(eng, {})
+        src = per_engine_sources.setdefault(eng, {})
+        vals["aeff"] = aeff_m
+        src["aeff"] = "raw"
+        _fill_cq(vals, src, aeff_m)
 
     # 3) pairwise compare
     # We DISPLAY "Ext" and "Abs" instead of Cext/Cabs/Qext/Qabs columns,
@@ -671,6 +699,71 @@ def _process_one_case(
                         )
                         if bad:
                             pair_failed = True
+            # --- force (only for cases that need it) ---
+            if need_torque:
+                q = "torque"
+
+                for eng, stdout0 in zip(
+                    engines_in_case,
+                    [files[0] for files in per_engine_files.values()],
+                ):
+                    lambda_m = extract_lambda_meters_for_engine(
+                        engines_cfg.get(eng, {}),
+                        stdout_path=stdout0,
+                    )
+                    if lambda_m is not None:
+                        per_engine_values[eng]["lambda"] = lambda_m
+
+                # We always try to compare a consistent metric:
+                # Prefer Qtrq (raw),
+                # else derive Qtrq from (torque,E0,lambda,aeff).
+                name_i, v_i = aligned_torque_metric(
+                    eng_i,
+                    per_engine_values,
+                )
+                name_j, v_j = aligned_torque_metric(
+                    eng_j,
+                    per_engine_values,
+                )
+
+                # If one side is Qtrq/Qtrq* and the other is NA,
+                # we refuse comparison as they are not directly comparable
+                consistent = True
+                if (name_i.startswith("Qtrq") and name_j == "NA") or (
+                    name_j.startswith("Qtrq") and name_i == "NA"
+                ):
+                    consistent = False
+
+                if not consistent:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                elif v_i is None or v_j is None:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                    pair_failed = True
+                else:
+                    rel = compute_rel_err(v_i, v_j)
+                    d = matching_digits_from_rel_err(rel)
+                    if d is None:
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
+                    else:
+                        tol_torque_min, tol_torque_max = (
+                            tol_torque if tol_torque else (0, 10**9)
+                        )
+                        bad = d < tol_torque_min or d > tol_torque_max
+
+                        # display which metric was used
+                        # examples: "12Qtrq", "9Qtrq*", "7NA"
+                        label = (
+                            name_i
+                            if name_i == name_j
+                            else (name_i if "*" in name_i else name_j)
+                        )
+
+                        line_parts.append(
+                            f"{q:<{QNAME_W}}:{d}{label}{'❌' if bad else ''}"
+                        )
+                        if bad:
+                            pair_failed = True
 
             # --- other generic scalar compares (optional, still supported) ---
             for q in case_quantities:
@@ -684,6 +777,8 @@ def _process_one_case(
                     "force",
                     "E0",
                     "Cpr",
+                    "torque",
+                    "Qtrq",
                 ):
                     continue
 

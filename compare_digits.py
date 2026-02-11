@@ -99,6 +99,8 @@ def main() -> None:
         "force",
         "E0",
         "Cpr",
+        "torque",
+        "Qtrq",
     ]
 
     output_dir = args.output

@@ -16,6 +16,11 @@
       "mesh_size_pattern": "Size of the mesh size\\s*:\\s*(?P<value>[0-9.eE+-]+)",
       "unit": "meter"
     },
+    "lambda": {
+      "type": "text",
+      "pattern": "Wavelength\\s*:\\s*(?P<value>[0-9.eE+-]+)",
+      "unit_factor": 1e-9
+    },
     "outputs": {
       "Cext": {
         "type": "text",
@@ -40,6 +45,11 @@
       "E0": {
         "type": "text",
         "pattern": "Field\\s*:\\s*\\(\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "torque": {
+        "type": "text",
+        "pattern": "Modulus of the (?:optical\\s+)?torque\\s*:?[\\s]*(?P<value>[0-9eE+\\.-]+)",
         "unit_factor": 1.0
       }
     },
@@ -146,7 +156,7 @@
         "set_env_to_dst": true
       }
     ],
-    "extra_files": ["ddscat.log_000"],
+    "extra_files": ["w000r000.avg", "ddscat.log_000"],
     "aeff": {
       "source": "extra",
       "pattern": ">\\s*DDSCAT\\s+(?P<value>[0-9.eE+-]+)\\s*=\\s*AEFF",
@@ -167,6 +177,12 @@
         "type": "text",
         "pattern": "(?:frac\\.err|f\\.err)\\s*=\\s*(?P<value>[0-9.eE+-]+)",
         "unit_factor": 1.0
+      },
+      "Qtrq": {
+        "type": "text_vec3_norm",
+        "pattern": "Qtrq\\(1\\).*\\nJO=1:\\s+(?:[0-9eE+\\.\\-]+\\s+){6}(?P<x>[0-9eE+\\.\\-]+)\\s+(?P<y>[0-9eE+\\.\\-]+)\\s+(?P<z>[0-9eE+\\.\\-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
       }
     },
     "cleanup": {

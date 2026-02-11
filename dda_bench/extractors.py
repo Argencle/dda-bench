@@ -372,3 +372,23 @@ def extract_aeff_meters_for_engine(
     V = float(n) * (d_m**3)
     aeff = (3.0 * V / (4.0 * math.pi)) ** (1.0 / 3.0)
     return aeff
+
+
+def extract_lambda_meters_for_engine(
+    engine_cfg: dict[str, Any],
+    stdout_path: Path,
+) -> float | None:
+    """
+    Extract wavelength from engine stdout and return it in meters.
+    """
+    spec = engine_cfg.get("lambda")
+    if not spec:
+        return None
+
+    return _read_quantity_from_text_file(
+        stdout_path,
+        pattern=spec["pattern"],
+        unit_factor=spec.get("unit_factor", 1.0),
+        take_last=spec.get("take_last", False),
+        type=spec.get("type", "text"),
+    )

@@ -16,6 +16,7 @@ class CommandCase:
       - tol_res_min/tol_res_max   (required)
       - tol_int_min/tol_int_max   (optional)
       - tol_force_min/tol_force_max (optional)
+      - tol_torque_min/tol_torque_max (optional)
       - skip_pairs: list[tuple[str,str]] (optional)
     """
 
@@ -62,6 +63,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
     Optional:
       - # @tol_int: <min> <max>
       - # @tol_force: <min> <max>
+      - # @tol_torque: <min> <max>
       - # @skip_pairs: <engine1> <engine2> <engine3> <engine4> ...
     """
     cases: list[CommandCase] = []
@@ -136,6 +138,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
 
         need_int = meta.get("need_int") == "1"
         need_force = meta.get("need_force") == "1"
+        need_torque = meta.get("need_torque") == "1"
 
         if need_int:
             if "tol_int_min" not in meta or "tol_int_max" not in meta:
@@ -147,6 +150,12 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
             if "tol_force_min" not in meta or "tol_force_max" not in meta:
                 raise ValueError(
                     f"Case '{current_id}' in {command_file} has @need_force but is missing @tol_force: <min> <max>."
+                )
+
+        if need_torque:
+            if "tol_torque_min" not in meta or "tol_torque_max" not in meta:
+                raise ValueError(
+                    f"Case '{current_id}' in {command_file} has @need_torque but is missing @tol_torque: <min> <max>."
                 )
 
     def _flush_current() -> None:
@@ -268,6 +277,15 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
                     current_meta["tol_force_max"] = b
                     continue
 
+                # optional
+                if "@tol_torque:" in stripped:
+                    a, b = _parse_pair_tag(
+                        stripped, "@tol_torque:", lineno, command_file
+                    )
+                    current_meta["tol_torque_min"] = a
+                    current_meta["tol_torque_max"] = b
+                    continue
+
                 # multi-line strict: exactly 2 engines per line
                 if "@skip_pairs:" in stripped:
                     rhs = stripped.split("@skip_pairs:", 1)[1].strip()
@@ -289,6 +307,10 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
 
                 if stripped.startswith("#") and "@need_force" in stripped:
                     current_meta["need_force"] = "1"
+                    continue
+
+                if stripped.startswith("#") and "@need_torque" in stripped:
+                    current_meta["need_torque"] = "1"
                     continue
 
                 # unknown tag:
