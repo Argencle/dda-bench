@@ -134,6 +134,21 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
                         f"Case '{current_id}' in {command_file}: invalid skip_pairs entry"
                     )
 
+        need_int = meta.get("need_int") == "1"
+        need_force = meta.get("need_force") == "1"
+
+        if need_int:
+            if "tol_int_min" not in meta or "tol_int_max" not in meta:
+                raise ValueError(
+                    f"Case '{current_id}' in {command_file} has @need_int but is missing @tol_int: <min> <max>."
+                )
+
+        if need_force:
+            if "tol_force_min" not in meta or "tol_force_max" not in meta:
+                raise ValueError(
+                    f"Case '{current_id}' in {command_file} has @need_force but is missing @tol_force: <min> <max>."
+                )
+
     def flush_current() -> None:
         nonlocal current_id, current_cmds, current_meta
 
@@ -265,6 +280,15 @@ def read_command_cases(command_file: str) -> List[CommandCase]:
                     current_meta.setdefault("skip_pairs", []).append(
                         (toks[0], toks[1])
                     )
+                    continue
+
+                # optional bool tags
+                if stripped.startswith("#") and "@need_int" in stripped:
+                    current_meta["need_int"] = "1"
+                    continue
+
+                if stripped.startswith("#") and "@need_force" in stripped:
+                    current_meta["need_force"] = "1"
                     continue
 
                 # unknown tag:

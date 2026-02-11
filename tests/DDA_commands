@@ -1,20 +1,14 @@
 # ============================================================================
-# HOW THIS FILE WORKS (cases + engines)
+# HOW THIS FILE WORKS (cases + engines + tolerances)
 #
-# This file is parsed into *cases*. A case starts with a tag:
+# This file is parsed into *cases*. A case starts with:
 #     # @case: <case_id>
-# and continues until the next "# @case:" tag (or end-of-file).
+# and continues until the next "# @case:" (or end-of-file).
 # Every non-empty, non-comment line under a case is treated as a command
 # belonging to that case.
 #
-# Per-case tolerance:
-#     # @tol: <min_digits> <max_digits>
-# This tag applies to the current case and defines the expected matching
-# digit range used when comparing engines.
-#
-# Example:
-#     # @case: sphere_ldr_qmr
-#     # @tol: 11 16
+# --------------------------------------------------------------------------
+# ENGINE PREFIXES (NOT executable paths)
 #
 # Each command line must start with an engine prefix (e.g. "adda", "ifdda",
 # "ddscatcli", "adda_debug", ...). This prefix is only used to:
@@ -23,16 +17,66 @@
 #
 # IMPORTANT:
 # - The engine prefix is NOT the executable path.
-# - The executable and environment are configured in dda_codes.json:
+# - Executable paths + environment are configured in dda_codes.json:
 #       "exe": "...", "env": {...}, etc.
-#   Paths are resolved relative to the repository root.
+#   Relative paths are resolved from the repository root.
 #
-# CASE ID RULE:
-# - case_id is used to create output folders:
-#       outputs/<case_id>/<engine>/...
-# - Use only "safe" ids. In practice, use underscores "_" between words
-#   (e.g. "sphere_ldr_qmr", "sphereinbox_ldr_qmr_eps12").
-#   Avoid spaces and "/" in case ids.
+# --------------------------------------------------------------------------
+# CASE ID RULE
+#
+# case_id is used to create output folders:
+#     outputs/<case_id>/<engine>/...
+# Use only "safe" ids. In practice: use underscores "_" between words.
+# Avoid spaces and "/" in case ids.
+#
+# --------------------------------------------------------------------------
+# PER-CASE TOLERANCES (REQUIRED)
+#
+# You MUST always define residual tolerance:
+#     # @tol_res: <min_digits> <max_digits>
+#
+# For Ext/Abs, you MUST use either:
+#   A) One shared tolerance for Ext + Abs:
+#         # @tol: <min_digits> <max_digits>
+#      (applies to Ext and Abs)
+#
+#   OR
+#   B) Two separate tolerances:
+#         # @tol_ext: <min_digits> <max_digits>
+#         # @tol_abs: <min_digits> <max_digits>
+#
+# Notes:
+# - Ext/Abs are displayed as two columns:
+#     Ext compares (Cext vs Cext) if both are raw, else (Qext vs Qext) if both are raw,
+#     otherwise falls back to derived values (shown with C* or Q*).
+#     Same logic for Abs.
+# - residual1 can FAIL the case if it is outside @tol_res (not just a warning).
+#
+# --------------------------------------------------------------------------
+# OPTIONAL: INT_FIELD / FORCE (PER-CASE)
+#
+# If a case is meant to compare internal field and/or force, add:
+#     # @need_int
+#     # @need_force
+#
+# And then you MUST also provide the corresponding tolerance:
+#     # @tol_int:   <min_digits> <max_digits>    (required if @need_int)
+#     # @tol_force: <min_digits> <max_digits>    (required if @need_force)
+#
+# When enabled an extra column "int_field" and/or "force" is displayed for that case*.
+#
+# --------------------------------------------------------------------------
+# OPTIONAL: SKIP PAIRWISE COMPARISONS
+#
+# To skip specific engine pairs for a case, use:
+#     # @skip_pairs:
+#     #   <engineA> <engineB>
+#     #   <engineC> <engineD>
+#     #   ...
+#
+# Each line defines one pair to skip. Pairs are symmetric (A,B) == (B,A).
+# Engine names must match keys in dda_codes.json.
+#
 # ============================================================================
 # @case: sphere_rrc_qmr
 # @tol: 11 16
@@ -269,8 +313,43 @@ adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab 
 # @tol: 4 7
 # @tol_res: 4 7 
 # @skip_pairs: adda ddscat 
-# @skip_pairs: ifdda nute
 #----------Arbitrary shape (helix) for left circular polarization----------#
 ifdda -lambda 500 -nnnr 30 -object arbitrary shape_ifdda.dat -methodeit BICGSTAB -tolinit 1.d-4 -polarizability FG -ninitest 0 -prop 90 0 -beam pwavecircular 1
 ddscatcli -CSHAPE FROM_FILE -AEFF "0.10011394279690265 0.10011394279690265 1 'LIN'" -WAVELENGTHS "0.5 0.5 1 'LIN'" -DIEL "diel/m1.302265942870714_0.07678923076154483" -MEM_ALLOW "32 32 32" -SHPAR "16 32 8" -TOL 1e-4 -CMDSOL PBCGST -CALPHA FLTRCD -IORTH 1 -POL_E01 "(0,0) (1,0) (0,-1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -ETASCA 10 -run
 adda -lambda 0.5 -shape read shape.dat -size 0.14048319255318795 -iter bicgstab -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -init_field zero -scat dr -prop 1 0 0 -no_vol_cor -scat_matr none -beam besselM 0 0 0.7071067811865475 0 0 0 0 -0.7071067811865475 0 0 -sym enf
+# @case: sphere_rrc_qmr_intfield_force
+# @tol: 11 16
+# @tol_res: 11 16 
+# @need_int
+# @tol_int: 11 16
+# @tol_force: 11 16
+# @need_force
+#----------Full precision internal field + force----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol rrc -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 100 -methodeit QMRCLA -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability RR -nnnr 16 -ninitest 0 -near_field 1 1 0 -save_data 2 -nforce 1 1 0 0
+# @case: spherebox_ldr_bicgstab_intfield_force
+# @tol: 11 16
+# @tol_res: 11 16 
+# @need_int
+# @tol_int: 11 16
+# @tol_force: 11 16
+# @need_force
+#----------Solver precision internal field + force (inhomogeneous)----------#
+adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field -Cpr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 1 -save_data 2 -nforce 1 1 0 0
+# @case: spherebox_ldr_bicgstab_intfield
+# @tol: 11 16
+# @tol_res: 11 16 
+# @need_int
+# @tol_int: 11 16
+#----------Solver precision internal field (inhomogeneous)----------#
+adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -store_int_field
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 1 -save_data 2 
+# @case: spherebox_ldr_bicgstab_force
+# @tol: 11 16
+# @tol_res: 11 16 
+# @tol_force: 11 16
+# @need_force
+#----------Solver precision force (inhomogeneous)----------#
+adda -lambda 0.5 -shape spherebox 1 -size 1.0 -iter bicgstab -m 1.000000000000001 0.0 1.302265942870714 0.07678923076154483 -eps 4 -pol ldr -grid 16 -init_field zero -no_vol_cor -scat dr -Cpr
+ifdda -lambda 500 -object sphere 500 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability LS -nnnr 16 -ninitest 0 -near_field 1 1 1 -nforce 1 1 0 0

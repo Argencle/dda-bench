@@ -20,7 +20,7 @@ from .utils import compute_rel_err, matching_digits_from_rel_err
 # display widths
 CASE_W = 45
 ENGINE_W = 7
-QNAME_W = 3  # label width like "Ext", "Abs", "residual1", ...
+QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
 
 # ---------------------------------------------------------------------
 # Helpers: results + summary
@@ -110,7 +110,7 @@ def _case_tol_ranges(
       - ALWAYS:
           @tol_res: <min> <max>
 
-    Optional:
+    Optional (but can be required if the case is tagged need_int/need_force):
       - @tol_int: <min> <max>
       - @tol_force: <min> <max>
 
@@ -130,6 +130,8 @@ def _case_tol_ranges(
             f"Case '{case.case_id}' must define @tol_res: <min> <max>."
         )
 
+    need_int = meta.get("need_int") == "1"
+    need_force = meta.get("need_force") == "1"
     tol_int = _parse_int_pair(meta, "tol_int_min", "tol_int_max")
     tol_force = _parse_int_pair(meta, "tol_force_min", "tol_force_max")
 
@@ -139,6 +141,15 @@ def _case_tol_ranges(
             raise ValueError(
                 f"Case '{case.case_id}' mixes @tol with @tol_ext/@tol_abs."
             )
+        # if need_int/need_force, enforce presence
+        if need_int and tol_int is None:
+            raise ValueError(
+                f"Case '{case.case_id}' has @need_int but no @tol_int."
+            )
+        if need_force and tol_force is None:
+            raise ValueError(
+                f"Case '{case.case_id}' has @need_force but no @tol_force."
+            )
         return tol, tol, tol_res, tol_int, tol_force
 
     # no @tol => need ext+abs (safety; normally already validated)
@@ -146,6 +157,17 @@ def _case_tol_ranges(
         raise ValueError(
             f"Case '{case.case_id}' must define BOTH @tol_ext and @tol_abs when @tol is absent."
         )
+
+    # enforce need_int/need_force => tol present
+    if need_int and tol_int is None:
+        raise ValueError(
+            f"Case '{case.case_id}' has @need_int but no @tol_int."
+        )
+    if need_force and tol_force is None:
+        raise ValueError(
+            f"Case '{case.case_id}' has @need_force but no @tol_force."
+        )
+
     return tol_ext, tol_abs, tol_res, tol_int, tol_force
 
 
@@ -300,7 +322,7 @@ def _compare_extabs(
         bad = d < tol_min or d > tol_max
         return f"{d}Q{'❌' if bad else ''}", bad
 
-    # 3) both have C (derived)
+    # 3) both have C (derived mix)
     if c_key in vi and c_key in vj:
         d = _digits(vi[c_key], vj[c_key])
         if d is None:
@@ -308,7 +330,7 @@ def _compare_extabs(
         bad = d < tol_min or d > tol_max
         return f"{d}C*{'❌' if bad else ''}", bad
 
-    # 4) both have Q (derived)
+    # 4) both have Q (derived mix)
     if q_key in vi and q_key in vj:
         d = _digits(vi[q_key], vj[q_key])
         if d is None:
@@ -358,15 +380,34 @@ def process_one_case(
 ) -> bool:
     case_id = case.case_id
     case_cmds = case.commands
+    meta = case.meta or {}
 
-    (
-        (tol_ext_min, tol_ext_max),
-        (tol_abs_min, tol_abs_max),
-        (tol_res_min, tol_res_max),
-        _tol_int,
-        _tol_force,
-    ) = _case_tol_ranges(case)
+    (tol_ext, tol_abs, tol_res, tol_int, tol_force) = _case_tol_ranges(case)
+    (tol_ext_min, tol_ext_max) = tol_ext
+    (tol_abs_min, tol_abs_max) = tol_abs
+    (tol_res_min, tol_res_max) = tol_res
+
+    need_int = meta.get("need_int") == "1"
+    need_force = meta.get("need_force") == "1"
+
     skip_pairs = _parse_skip_pairs(case, engines_cfg)
+
+    # Build per-case quantities:
+    # - Always extract the base quantities requested by caller (typically C/Q/residual)
+    # - Only extract/display int_field/force if the case declares it
+    base_quantities = list(quantities)
+    case_quantities: List[str] = []
+    for q in base_quantities:
+        if q == "int_field" and not need_int:
+            continue
+        if q == "force" and not need_force:
+            continue
+        case_quantities.append(q)
+    # Ensure required ones exist even if caller didn't include them
+    if need_int and "int_field" not in case_quantities:
+        case_quantities.append("int_field")
+    if need_force and "force" not in case_quantities:
+        case_quantities.append("force")
 
     # 1) run all commands
     per_engine_values: Dict[str, Dict[str, float]] = {}
@@ -396,7 +437,7 @@ def process_one_case(
         per_engine_values.setdefault(engine, {})
         per_engine_sources.setdefault(engine, {})
 
-        for q in quantities:
+        for q in case_quantities:
             val = extract_quantity_for_engine(
                 engine, engine_cfg, q, stdout_path
             )
@@ -502,37 +543,34 @@ def process_one_case(
             line_parts.append(f"{'Abs':<{QNAME_W}}:{abs_txt}")
             if abs_bad:
                 pair_failed = True
+            # --- residual1 (always displayed if requested) ---
+            if "residual1" in case_quantities:
+                q = "residual1"
+                v_i = per_engine_values.get(eng_i, {}).get(q)
+                v_j = per_engine_values.get(eng_j, {}).get(q)
 
-            # --- Then the rest of the quantities ---
-            for q in quantities:
-                # We do NOT display these 4
-                if q in ("Cext", "Cabs", "Qext", "Qabs"):
-                    continue
-
-                # residuals => FAIL if out of tolerance
-                if q == "residual1":
-                    v_i = per_engine_values.get(eng_i, {}).get(q)
-                    v_j = per_engine_values.get(eng_j, {}).get(q)
-                    if v_i is None or v_j is None:
-                        line_parts.append(f"{q:<{QNAME_W}}:NA")
-                        continue
-
+                if v_i is None or v_j is None:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                else:
                     d = _digits(v_i, v_j)
                     if d is None:
                         line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                         pair_failed = True
-                        continue
+                    else:
+                        bad = d < tol_res_min or d > tol_res_max
+                        line_parts.append(
+                            f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
+                        )
+                        if bad:
+                            pair_failed = True
 
-                    bad = d < tol_res_min or d > tol_res_max
-                    line_parts.append(
-                        f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
-                    )
-                    if bad:
-                        pair_failed = True
-                    continue
+            # --- int_field (only for cases that need it) ---
+            if need_int:
+                q = "int_field"
+                # Compare only if the pair is ADDA+IFDDA
+                if {"adda", "ifdda"} <= {eng_i, eng_j} and tol_int is not None:
+                    (tol_int_min, tol_int_max) = tol_int
 
-                # internal field special compare (ADDA + IFDDA)
-                if q == "int_field" and {"adda", "ifdda"} <= {eng_i, eng_j}:
                     adda_dirs = per_engine_run_dirs.get("adda", [])
                     ifdda_dirs = per_engine_run_dirs.get("ifdda", [])
 
@@ -545,7 +583,6 @@ def process_one_case(
                         else None
                     )
                     ifdda_h5 = (ifdda_run / "ifdda.h5") if ifdda_run else None
-
                     ifdda_files = per_engine_files.get("ifdda", [])
                     ifdda_out = ifdda_files[0] if ifdda_files else None
 
@@ -563,20 +600,36 @@ def process_one_case(
                                 ifdda_h5, adda_csv, norm
                             )
                             d = matching_digits_from_rel_err(rel)
-                            if d is None or d < tol_ext_min:
-                                line_parts.append(
-                                    f"{q:<{QNAME_W}}:{d if d is not None else 'NA'}❌"
-                                )
+
+                            if d is None:
+                                line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                                 pair_failed = True
                             else:
-                                line_parts.append(f"{q:<{QNAME_W}}:{d}")
-                            continue
-
+                                bad = d < tol_int_min or d > tol_int_max
+                                line_parts.append(
+                                    f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
+                                )
+                                if bad:
+                                    pair_failed = True
+                        else:
+                            line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                            pair_failed = True
+                    else:
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
+                else:
+                    # Case requires int_field but this pair can't compare it
                     line_parts.append(f"{q:<{QNAME_W}}:NA")
-                    continue
 
-                # force special compare (ADDA + IFDDA)
-                if q == "force" and {"adda", "ifdda"} <= {eng_i, eng_j}:
+            # --- force (only for cases that need it) ---
+            if need_force:
+                q = "force"
+                if {"adda", "ifdda"} <= {
+                    eng_i,
+                    eng_j,
+                } and tol_force is not None:
+                    (tol_force_min, tol_force_max) = tol_force
+
                     adda_files = per_engine_files.get("adda", [])
                     ifdda_files = per_engine_files.get("ifdda", [])
                     adda_out = adda_files[0] if adda_files else None
@@ -603,16 +656,36 @@ def process_one_case(
                             rel = compute_rel_err(ifdda_force, adda_force)
                             d = matching_digits_from_rel_err(rel)
 
-                            if d is None or d < tol_ext_min:
-                                line_parts.append(
-                                    f"{q:<{QNAME_W}}:{d if d is not None else 'NA'}❌"
-                                )
+                            if d is None:
+                                line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                                 pair_failed = True
                             else:
-                                line_parts.append(f"{q:<{QNAME_W}}:{d}")
-                            continue
-
+                                bad = d < tol_force_min or d > tol_force_max
+                                line_parts.append(
+                                    f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
+                                )
+                                if bad:
+                                    pair_failed = True
+                        else:
+                            line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                            pair_failed = True
+                    else:
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
+                else:
                     line_parts.append(f"{q:<{QNAME_W}}:NA")
+
+            # --- other generic scalar compares (optional, still supported) ---
+            for q in case_quantities:
+                if q in (
+                    "Cext",
+                    "Cabs",
+                    "Qext",
+                    "Qabs",
+                    "residual1",
+                    "int_field",
+                    "force",
+                ):
                     continue
 
                 # generic scalar compare

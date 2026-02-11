@@ -9,11 +9,7 @@ from dda_bench.reporters import process_all_cases, write_summary_csv
 from dda_bench.utils import clean_output_files
 
 
-DEFAULTS = {
-    "default": "tests/DDA_commands",
-    "force": "tests/DDA_commands_internalfield",
-    "int": "tests/DDA_commands_internalfield",
-}
+DEFAULT_COMMAND_FILE = "tests/DDA_commands"
 
 
 def build_logger(check: bool) -> logging.Logger:
@@ -47,15 +43,9 @@ def parse_args() -> argparse.Namespace:
     )
 
     parser.add_argument(
-        "--mode",
-        choices=["default", "force", "int"],
-        default="default",
-        help="Select preset command file + quantities (default: default).",
-    )
-    parser.add_argument(
         "--commands",
-        default=None,
-        help="Override command file path (takes precedence over --mode).",
+        default=DEFAULT_COMMAND_FILE,
+        help="Command file path (default: tests/DDA_commands).",
     )
 
     parser.add_argument(
@@ -98,21 +88,22 @@ def main() -> None:
     # engine config
     engines_cfg = load_engine_config(DDA_CODES_JSON)
 
-    # command file selection
-    command_file = args.commands if args.commands else DEFAULTS[args.mode]
-
     # quantities selection
-    quantities = ["Cext", "Cabs", "residual1", "Qext", "Qabs"]
-    if args.mode == "force":
-        quantities.append("force")
-    if args.mode == "int":
-        quantities.append("int_field")
+    quantities = [
+        "Cext",
+        "Cabs",
+        "residual1",
+        "Qext",
+        "Qabs",
+        "int_field",
+        "force",
+    ]
 
     output_dir = args.output
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # load cases
-    cases = read_command_cases(command_file)
+    cases = read_command_cases(args.commands)
 
     logger = build_logger(args.check)
 
