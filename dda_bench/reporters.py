@@ -9,7 +9,7 @@ from .extractors import (
     detect_engine_from_cmd,
     extract_quantity_for_engine,
     extract_series_for_engine,
-    compute_internal_field_error,
+    compute_mean_relative_error,
     extract_aeff_meters_for_engine,
     extract_lambda_meters_for_engine,
 )
@@ -104,6 +104,7 @@ def _case_tol_ranges(
     tuple[int, int] | None,
     tuple[int, int] | None,
     tuple[int, int] | None,
+    tuple[int, int] | None,
 ]:
     """
     Rules (enforced by read_command_cases()):
@@ -118,9 +119,10 @@ def _case_tol_ranges(
       - @tol_int: <min> <max>
       - @tol_force: <min> <max>
       - @tol_torque: <min> <max>
+      - @tol_mueller: <min> <max>
 
     Returns:
-      (tol_ext, tol_abs, tol_res, tol_int_or_none, tol_force_or_none, tol_torque_or_none)
+      (tol_ext, tol_abs, tol_res, tol_int_or_none, tol_force_or_none, tol_torque_or_none, tol_mueller_or_none)
     """
     meta = case.meta or {}
 
@@ -138,9 +140,11 @@ def _case_tol_ranges(
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
     need_torque = meta.get("need_torque") == "1"
+    need_mueller = meta.get("need_mueller") == "1"
     tol_int = _parse_int_pair(meta, "tol_int_min", "tol_int_max")
     tol_force = _parse_int_pair(meta, "tol_force_min", "tol_force_max")
     tol_torque = _parse_int_pair(meta, "tol_torque_min", "tol_torque_max")
+    tol_mueller = _parse_int_pair(meta, "tol_mueller_min", "tol_mueller_max")
 
     if tol is not None:
         # forbid mixing (safety; normally already validated)
@@ -161,7 +165,19 @@ def _case_tol_ranges(
             raise ValueError(
                 f"Case '{case.case_id}' has @need_torque but no @tol_torque."
             )
-        return tol, tol, tol_res, tol_int, tol_force, tol_torque
+        if need_mueller and tol_mueller is None:
+            raise ValueError(
+                f"Case '{case.case_id}' has @need_mueller but no @tol_mueller."
+            )
+        return (
+            tol,
+            tol,
+            tol_res,
+            tol_int,
+            tol_force,
+            tol_torque,
+            tol_mueller,
+        )
 
     # no @tol => need ext+abs (safety; normally already validated)
     if tol_ext is None or tol_abs is None:
@@ -182,8 +198,20 @@ def _case_tol_ranges(
         raise ValueError(
             f"Case '{case.case_id}' has @need_torque but no @tol_torque."
         )
+    if need_mueller and tol_mueller is None:
+        raise ValueError(
+            f"Case '{case.case_id}' has @need_mueller but no @tol_mueller."
+        )
 
-    return tol_ext, tol_abs, tol_res, tol_int, tol_force, tol_torque
+    return (
+        tol_ext,
+        tol_abs,
+        tol_res,
+        tol_int,
+        tol_force,
+        tol_torque,
+        tol_mueller,
+    )
 
 
 def _parse_skip_pairs(
@@ -282,6 +310,34 @@ def _fill_cq(
 
 def _digits(a: float, b: float) -> int | None:
     rel = compute_rel_err(a, b)
+    return matching_digits_from_rel_err(rel)
+
+
+def _mueller_digits_from_column_mean_rel_errors(
+    a: list[float], b: list[float], ncols: int = 16
+) -> int | None:
+    """
+    Mueller aggregation:
+      1) reshape flat arrays as rows of ncols
+      2) compute mean relative error for each column
+      3) aggregate with min(mean_rel_error) across columns
+      4) convert to matching digits
+    """
+    if not a or not b or len(a) != len(b) or ncols <= 0:
+        return None
+    if len(a) % ncols != 0:
+        return None
+
+    mean_rel_cols: list[float] = []
+    for c in range(ncols):
+        col_a = a[c::ncols]
+        col_b = b[c::ncols]
+        rel_col = compute_mean_relative_error(col_a, col_b)
+        if rel_col is None:
+            return None
+        mean_rel_cols.append(rel_col)
+
+    rel = min(mean_rel_cols)
     return matching_digits_from_rel_err(rel)
 
 
@@ -397,9 +453,15 @@ def _process_one_case(
     case_cmds = case.commands
     meta = case.meta or {}
 
-    (tol_ext, tol_abs, tol_res, tol_int, tol_force, tol_torque) = (
-        _case_tol_ranges(case)
-    )
+    (
+        tol_ext,
+        tol_abs,
+        tol_res,
+        tol_int,
+        tol_force,
+        tol_torque,
+        tol_mueller,
+    ) = _case_tol_ranges(case)
     (tol_ext_min, tol_ext_max) = tol_ext
     (tol_abs_min, tol_abs_max) = tol_abs
     (tol_res_min, tol_res_max) = tol_res
@@ -408,12 +470,13 @@ def _process_one_case(
     need_int = meta.get("need_int") == "1"
     need_force = meta.get("need_force") == "1"
     need_torque = meta.get("need_torque") == "1"
+    need_mueller = meta.get("need_mueller") == "1"
 
     skip_pairs = _parse_skip_pairs(case, engines_cfg)
 
     # Build per-case quantities:
     # - Always extract the base quantities requested by caller (typically C/Q/residual)
-    # - Only extract/display int_field/force/torque metrics if the case declares them
+    # - Only extract/display int_field/force/torque/mueller metrics if the case declares them
     base_quantities = list(quantities)
     case_quantities: list[str] = []
     for q in base_quantities:
@@ -425,6 +488,8 @@ def _process_one_case(
             continue
         if q in ("torque", "Qtrq") and not need_torque:
             continue
+        if q == "mueller" and not need_mueller:
+            continue
         case_quantities.append(q)
     # Ensure required ones exist even if caller didn't include them
     if need_int and "int_field" not in case_quantities:
@@ -435,6 +500,8 @@ def _process_one_case(
         case_quantities.append("force")
     if need_torque and "torque" not in case_quantities:
         case_quantities.append("torque")
+    if need_mueller and "mueller" not in case_quantities:
+        case_quantities.append("mueller")
 
     # 1) run all commands
     per_engine_values: dict[str, dict[str, float]] = {}
@@ -623,7 +690,7 @@ def _process_one_case(
                         )
 
                         if series_i and series_j:
-                            rel = compute_internal_field_error(
+                            rel = compute_mean_relative_error(
                                 series_i, series_j
                             )
                             d = (
@@ -761,6 +828,58 @@ def _process_one_case(
                         if bad:
                             pair_failed = True
 
+            # --- mueller (only for cases that need it) ---
+            if need_mueller:
+                q = "mueller"
+                if tol_mueller is None:
+                    line_parts.append(f"{q:<{QNAME_W}}:NA")
+                else:
+                    tol_mueller_min, tol_mueller_max = tol_mueller
+                    files_i = per_engine_files.get(eng_i)
+                    files_j = per_engine_files.get(eng_j)
+                    out_i = files_i[0] if files_i else None
+                    out_j = files_j[0] if files_j else None
+
+                    if not out_i or not out_j:
+                        line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                        pair_failed = True
+                    else:
+                        cfg_i = engines_cfg.get(eng_i, {})
+                        cfg_j = engines_cfg.get(eng_j, {})
+
+                        series_i = extract_series_for_engine(
+                            cfg_i,
+                            q,
+                            out_i,
+                            per_engine_values=per_engine_values.get(eng_i, {}),
+                        )
+                        series_j = extract_series_for_engine(
+                            cfg_j,
+                            q,
+                            out_j,
+                            per_engine_values=per_engine_values.get(eng_j, {}),
+                        )
+
+                        if series_i and series_j:
+                            d = _mueller_digits_from_column_mean_rel_errors(
+                                series_i, series_j
+                            )
+                            if d is None:
+                                line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                                pair_failed = True
+                            else:
+                                bad = (
+                                    d < tol_mueller_min or d > tol_mueller_max
+                                )
+                                line_parts.append(
+                                    f"{q:<{QNAME_W}}:{d}{'❌' if bad else ''}"
+                                )
+                                if bad:
+                                    pair_failed = True
+                        else:
+                            line_parts.append(f"{q:<{QNAME_W}}:NA❌")
+                            pair_failed = True
+
             # --- other generic scalar compares (optional, still supported) ---
             for q in case_quantities:
                 if q in (
@@ -775,6 +894,7 @@ def _process_one_case(
                     "Cpr",
                     "torque",
                     "Qtrq",
+                    "mueller",
                 ):
                     continue
 

@@ -125,6 +125,31 @@
       "column": "|E|^2",
       "select": "last_run"
     },
+    "mueller": {
+      "source": "run_dir_glob",
+      "pattern": "run*/*mueller",
+      "type": "csv_columns",
+      "sep": "\\s+",
+      "columns": [
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s21",
+        "s22",
+        "s23",
+        "s24",
+        "s31",
+        "s32",
+        "s33",
+        "s34",
+        "s41",
+        "s42",
+        "s43",
+        "s44"
+      ],
+      "select": "last_run"
+    },
     "cleanup": {
       "remove_globs": ["run*"],
       "remove_names": ["ExpCount", "shape.dat"]
@@ -184,6 +209,14 @@
         "unit_factor": 1.0,
         "take_last": true
       }
+    },
+    "mueller": {
+      "source": "run_dir_glob",
+      "pattern": "w*.avg",
+      "type": "text_table_columns",
+      "header_pattern": "^\\s*theta\\s+phi\\s+Pol\\.\\s+S_11\\b",
+      "value_start_index": 3,
+      "value_count": 16
     },
     "cleanup": {
       "remove_names": ["diel", "mtable", "qtable", "qtable2", "target.out"],

@@ -141,7 +141,7 @@ def extract_series_for_engine(
     per_engine_values: dict[str, float],
 ) -> list[float] | None:
     """
-    Extract an array-like quantity (csv/hdf5) according to dda_codes.json spec.
+    Extract an array-like quantity according to dda_codes.json spec.
     """
     spec = engine_cfg.get(quantity)
     if not spec:
@@ -151,7 +151,7 @@ def extract_series_for_engine(
         return None
 
     qtype = spec.get("type")
-    if qtype not in ("hdf5", "csv"):
+    if qtype not in ("hdf5", "csv", "csv_columns", "text_table_columns"):
         return None
 
     paths = _resolve_paths_from_spec(spec, main_output)
@@ -170,12 +170,34 @@ def extract_series_for_engine(
         if not dataset:
             return None
         arr = _read_array_hdf5(path, dataset)
-    else:
+    elif qtype == "csv":
         sep = spec.get("sep", " ")
         column = spec.get("column")
         if not column:
             return None
         arr = _read_array_csv(path, sep, column)
+    elif qtype == "csv_columns":
+        sep = spec.get("sep", " ")
+        columns = spec.get("columns")
+        if not isinstance(columns, list) or not columns:
+            return None
+        arr = _read_array_csv_columns(path, sep, columns)
+    else:
+        header_pattern = spec.get("header_pattern")
+        value_start_index = spec.get("value_start_index")
+        value_count = spec.get("value_count")
+        if (
+            not isinstance(header_pattern, str)
+            or not isinstance(value_start_index, int)
+            or not isinstance(value_count, int)
+        ):
+            return None
+        arr = _read_text_table_columns(
+            path=path,
+            header_pattern=header_pattern,
+            value_start_index=value_start_index,
+            value_count=value_count,
+        )
 
     if arr is None:
         return None
@@ -201,10 +223,82 @@ def _read_array_hdf5(path: Path, dataset: str) -> list[float] | None:
 def _read_array_csv(path: Path, sep: str, column: str) -> list[float] | None:
     if not path.exists():
         return None
-    df = pd.read_csv(path, sep=sep)
+    df = pd.read_csv(path, sep=sep, engine="python")
     if column not in df.columns:
         return None
     return [float(x) for x in df[column].to_numpy()]
+
+
+def _read_array_csv_columns(
+    path: Path, sep: str, columns: list[str]
+) -> list[float] | None:
+    if not path.exists():
+        return None
+    df = pd.read_csv(path, sep=sep, engine="python")
+    lower_map = {str(c).lower(): c for c in df.columns}
+    resolved: list[str] = []
+    for col in columns:
+        if col in df.columns:
+            resolved.append(col)
+            continue
+        mapped = lower_map.get(col.lower())
+        if mapped is None:
+            return None
+        resolved.append(mapped)
+
+    data = df[resolved].to_numpy().ravel()
+    return [float(x) for x in data]
+
+
+def _read_text_table_columns(
+    path: Path,
+    header_pattern: str,
+    value_start_index: int,
+    value_count: int,
+) -> list[float] | None:
+    if not path.exists():
+        return None
+
+    rgx = re.compile(header_pattern)
+    lines = path.read_text(errors="ignore").splitlines()
+
+    header_idx: int | None = None
+    for idx, line in enumerate(lines):
+        if rgx.search(line):
+            header_idx = idx
+            break
+    if header_idx is None:
+        return None
+
+    out: list[float] = []
+    started = False
+    min_cols = value_start_index + value_count
+
+    for line in lines[header_idx + 1 :]:
+        stripped = line.strip()
+        if not stripped:
+            if started:
+                break
+            continue
+
+        parts = stripped.split()
+        if len(parts) < min_cols:
+            if started:
+                break
+            continue
+
+        row_slice = parts[value_start_index:min_cols]
+        try:
+            vals = [float(x) for x in row_slice]
+        except ValueError:
+            if started:
+                break
+            continue
+
+        out.extend(vals)
+        started = True
+
+    return out if out else None
 
 
 def extract_quantity_for_engine(
@@ -269,12 +363,13 @@ def extract_quantity_for_engine(
     return None
 
 
-def compute_internal_field_error(
+def compute_mean_relative_error(
     a: list[float],
     b: list[float],
 ) -> float | None:
     """
-    Mean absolute relative error: mean( abs((a_i - b_i) / b_i) )
+    Mean absolute relative error between two arrays:
+      mean(abs((a_i - b_i) / b_i)) for b_i != 0
     """
     try:
         if not a or not b:
@@ -301,7 +396,7 @@ def compute_internal_field_error(
         return s / k
 
     except Exception as e:
-        logging.error(f"Internal field comparison failed: {e}")
+        logging.error(f"Array comparison failed: {e}")
         return None
 
 

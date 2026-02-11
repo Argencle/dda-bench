@@ -53,17 +53,21 @@
 # - residual1 can FAIL the case if it is outside @tol_res (not just a warning).
 #
 # --------------------------------------------------------------------------
-# OPTIONAL: INT_FIELD / FORCE (PER-CASE)
+# OPTIONAL: INT_FIELD / FORCE / TORQUE / MUELLER (PER-CASE)
 #
-# If a case is meant to compare internal field and/or force, add:
+# If a case is meant to compare internal field and/or force and/or torque and/or mueller matrix, add:
 #     # @need_int
 #     # @need_force
+#     # @need_torque
+#     # @need_mueller
 #
 # And then you MUST also provide the corresponding tolerance:
 #     # @tol_int:   <min_digits> <max_digits>    (required if @need_int)
 #     # @tol_force: <min_digits> <max_digits>    (required if @need_force)
+#     # @tol_torque: <min_digits> <max_digits>    (required if @need_torque)
+#     # @tol_mueller: <min_digits> <max_digits>  (required if @need_mueller)
 #
-# When enabled an extra column "int_field" and/or "force" is displayed for that case*.
+# When enabled extra columns "int_field" / "force" / "torque" / "mueller" are displayed for that case*.
 #
 # --------------------------------------------------------------------------
 # OPTIONAL: SKIP PAIRWISE COMPARISONS
@@ -369,3 +373,11 @@ ddscatcli -CMDSOL PBCGST -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID 
 #----------Low precision for torque----------#
 ifdda -lambda 500 -object sphere 99.5540512465 -methodeit BICGSTAB -epsmulti 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -nforce 1 1 1 1 -prop 90 0 -beam pwavecircular -1
 ddscatcli -CMDSOL PBCGST -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,1)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ DOTORQ -ETASCA 10 -run
+# @case: sphere_fcd_qmr_mueller_matrix
+# @tol: 11 16
+# @tol_res: 11 16
+# @need_mueller
+# @tol_mueller: 11 16
+#----------Mueller matrix----------#
+adda -lambda 0.5 -shape sphere -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 1 0 0 -ntheta 180 -scat_matr muel
+ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID -SHPAR "15 15 15" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ NOTORQ -ETASCA 10 -CMDFRM LFRAME -NPLANES 1 -PLANE "0 0 180 1" -NSMELTS 16 -SMELTS_LIST "11 12 13 14 21 22 23 24 31 32 33 34 41 42 43 44" -run
