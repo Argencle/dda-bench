@@ -2,7 +2,7 @@ import csv
 import json
 import math
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 from .commands import CommandCase
 from .executors import run_case_command
 from .extractors import (
@@ -29,7 +29,7 @@ QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
 
 
 def write_case_results(
-    case_id: Optional[str],
+    case_id: str | None,
     per_engine_values: dict[str, dict[str, float]],
     output_dir: str,
 ) -> None:
@@ -77,7 +77,7 @@ def write_summary_csv(output_dir: str, csv_path: str) -> None:
 
 def _parse_int_pair(
     meta: dict[str, str], kmin: str, kmax: str
-) -> Optional[tuple[int, int]]:
+) -> tuple[int, int] | None:
     if kmin not in meta and kmax not in meta:
         return None
     if kmin not in meta or kmax not in meta:
@@ -99,8 +99,8 @@ def _case_tol_ranges(
     tuple[int, int],
     tuple[int, int],
     tuple[int, int],
-    Optional[tuple[int, int]],
-    Optional[tuple[int, int]],
+    tuple[int, int] | None,
+    tuple[int, int] | None,
 ]:
     """
     Rules (enforced by read_command_cases()):
@@ -266,7 +266,7 @@ def _fill_cq(
 # ---------------------------------------------------------------------
 
 
-def _digits(a: float, b: float) -> Optional[int]:
+def _digits(a: float, b: float) -> int | None:
     rel = compute_rel_err(a, b)
     return matching_digits_from_rel_err(rel)
 
@@ -415,7 +415,7 @@ def process_one_case(
     # 1) run all commands
     per_engine_values: dict[str, dict[str, float]] = {}
     per_engine_sources: dict[str, dict[str, str]] = {}  # raw/derived
-    per_engine_stats: dict[str, tuple[Optional[float], Optional[int]]] = {}
+    per_engine_stats: dict[str, tuple[float | None, int | None]] = {}
     per_engine_files: dict[str, list[Path]] = {}  # stdout files
     per_engine_run_dirs: dict[str, list[Path]] = {}  # working dirs
 

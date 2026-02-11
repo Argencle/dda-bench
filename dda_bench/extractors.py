@@ -5,7 +5,7 @@ import math
 import h5py
 import pandas as pd
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 
 
 def load_engine_config(path: Path) -> dict[str, Any]:
@@ -33,13 +33,13 @@ def read_quantity_from_text_file(
     unit_factor: float = 1.0,
     take_last: bool = False,
     type: str = "text",
-) -> Optional[float]:
+) -> float | None:
     if not output_path.exists():
         return None
 
     text = output_path.read_text()
 
-    match: Optional[re.Match[str]]
+    match: re.Match[str] | None
 
     if take_last:
         matches = list(re.finditer(pattern, text))
@@ -63,8 +63,8 @@ def read_quantity_from_text_file(
 
 
 def read_quantity_from_hdf5(
-    output_path: Path, dataset: str, index: Optional[int] = None
-) -> Optional[float]:
+    output_path: Path, dataset: str, index: int | None = None
+) -> float | None:
     if not output_path.exists():
         return None
     with h5py.File(output_path, "r") as f:
@@ -78,7 +78,7 @@ def extract_quantity_for_engine(
     engine_cfg: dict[str, Any],
     quantity: str,
     main_output: Path,
-) -> Optional[float]:
+) -> float | None:
     """
     Try to read a quantity for this engine.
     1) from the main output file
@@ -114,10 +114,10 @@ def extract_quantity_for_engine(
 
         if pat_path.is_absolute():
             # absolute path: treat as a single file
-            candidate_paths = [pat_path]
+            candidate_paths: list[Path] = [pat_path]
         else:
             # relative / glob pattern: keep existing behaviour
-            candidate_paths = base_dir.glob(extra_pat)
+            candidate_paths = list(base_dir.glob(extra_pat))
         for extra_path in candidate_paths:
             val = read_quantity_from_text_file(
                 extra_path,
@@ -132,7 +132,7 @@ def extract_quantity_for_engine(
     return None
 
 
-def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Optional[Path]:
+def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Path | None:
     """
     In a per-run working directory, ADDA writes something like:
       <run_dir>/runXXX_.../IntField-Y
@@ -145,7 +145,7 @@ def find_adda_internal_field_in_dir(adda_run_dir: Path) -> Optional[Path]:
 
 def compute_internal_field_error(
     ifdda_h5_path: Path, adda_csv_path: Path, norm: float
-) -> Optional[float]:
+) -> float | None:
     """
     Compare IFDDA HDF5 near field with ADDA CSV internal field, like before.
     """
@@ -176,7 +176,7 @@ def _to_meters(val: float, unit: str) -> float:
     return val
 
 
-def _read_first_match(paths: list[Path], pattern: str) -> Optional[float]:
+def _read_first_match(paths: list[Path], pattern: str) -> float | None:
     rgx = re.compile(pattern)
     for p in paths:
         if not p.exists():
@@ -192,7 +192,7 @@ def extract_aeff_meters_for_engine(
     engine_cfg: dict[str, Any],
     stdout_path: Path,
     extra_paths: list[Path],
-) -> Optional[float]:
+) -> float | None:
     """
     Returns aeff in meters if it can be obtained from outputs.
     Supports:

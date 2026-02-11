@@ -1,14 +1,11 @@
 import math
 import shutil
 from pathlib import Path
-from typing import Optional
 
 EPS0 = 8.854187817620389e-12  # F/m (vacuum permittivity)
 
 
-def compute_rel_err(
-    val1: Optional[float], val2: Optional[float]
-) -> Optional[float]:
+def compute_rel_err(val1: float | None, val2: float | None) -> float | None:
     """
     Relative error:
       rel = |v1 - v2| / max(|v1|, |v2|)
@@ -22,8 +19,8 @@ def compute_rel_err(
 
 
 def matching_digits_from_rel_err(
-    rel_err: Optional[float],
-) -> Optional[int]:
+    rel_err: float | None,
+) -> int | None:
     """
     Convert relative error to matching decimal digits.
     - rel_err == 0 => cap digits (perfect match)
@@ -45,7 +42,7 @@ def matching_digits_from_rel_err(
     return d
 
 
-def cpr_from_force(force_n: float, e0_field: float) -> Optional[float]:
+def cpr_from_force(force_n: float, e0_field: float) -> float | None:
     """
     From: F = Cpr * |E0|^2 * eps0 / 2
     => Cpr = 2F / (eps0 * |E0|^2)
@@ -60,7 +57,7 @@ def cpr_from_force(force_n: float, e0_field: float) -> Optional[float]:
 
 def aligned_force_metric(
     eng: str, vals: dict[str, dict[str, float]]
-) -> tuple[str, Optional[float]]:
+) -> tuple[str, float | None]:
     """
     Return (metric_name, value) for force comparison for one engine.
 

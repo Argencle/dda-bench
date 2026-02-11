@@ -2,15 +2,13 @@ import os
 import subprocess
 import shutil
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any
 from .commands import parse_command_lines
 
 REPO_ROOT = Path.cwd()
 
 
-def _resolve_env(
-    engine_cfg: dict[str, Any], run_dir: Path
-) -> Optional[dict[str, str]]:
+def _resolve_env(engine_cfg: dict[str, Any]) -> dict[str, str] | None:
     """
     Build an env dict based on engine_cfg["env"].
     Values can be:
@@ -55,7 +53,7 @@ def build_real_command(
     return f"{exe_path} {args}".strip()
 
 
-def _sanitize_case_id(case_id: Optional[str]) -> str:
+def _sanitize_case_id(case_id: str | None) -> str:
     return str(case_id).replace("/", "_").replace(" ", "_")
 
 
@@ -152,11 +150,11 @@ def run_command_with_stats(
     command: str,
     stdout_path: Path,
     stderr_path: Path,
-    time_path: Optional[Path],
+    time_path: Path | None,
     with_stats: bool,
     cwd: Path,
-    env: Optional[dict[str, str]] = None,
-) -> tuple[Optional[float], Optional[int]]:
+    env: dict[str, str] | None = None,
+) -> tuple[float | None, int | None]:
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
     if with_stats:
@@ -205,11 +203,11 @@ def run_case_command(
     cmd: str,
     engine: str,
     engine_cfg: dict[str, Any],
-    case_id: Optional[str],
+    case_id: str | None,
     cmd_idx: int,
     output_dir: str,
     with_stats: bool,
-) -> tuple[Path, Path, Optional[float], Optional[int]]:
+) -> tuple[Path, Path, float | None, int | None]:
     """
     Execute one command in:
       outputs/<case_id>/<engine>/
@@ -227,7 +225,7 @@ def run_case_command(
     stderr_path = run_dir / f"stderr_{cmd_idx:02d}.txt"
     time_path = run_dir / f"time_{cmd_idx:02d}.txt" if with_stats else None
 
-    env = _resolve_env(engine_cfg, run_dir)
+    env = _resolve_env(engine_cfg)
     if env is None:
         env = dict(os.environ)
 

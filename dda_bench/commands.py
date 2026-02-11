@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Optional, Any
+from typing import Any
 
 
 @dataclass
@@ -19,7 +19,7 @@ class CommandCase:
       - skip_pairs: list[tuple[str,str]] (optional)
     """
 
-    case_id: Optional[str]
+    case_id: str | None
     commands: list[tuple[str, int]]
     meta: dict[str, Any]
 
@@ -66,7 +66,7 @@ def read_command_cases(command_file: str) -> list[CommandCase]:
     """
     cases: list[CommandCase] = []
 
-    current_id: Optional[str] = None
+    current_id: str | None = None
     current_cmds: list[tuple[str, int]] = []
     current_meta: dict[str, Any] = {}
 
