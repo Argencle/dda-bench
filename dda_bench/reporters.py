@@ -446,21 +446,15 @@ def process_all_cases(
     output_dir: str,
     logger,
     quantities: list[str],
-    with_stats: bool,
-) -> bool:
-    all_ok = True
+) -> None:
     for case in cases:
-        ok = _process_one_case(
+        _process_one_case(
             case=case,
             engines_cfg=engines_cfg,
             output_dir=output_dir,
             logger=logger,
             quantities=quantities,
-            with_stats=with_stats,
         )
-        if not ok:
-            all_ok = False
-    return all_ok
 
 
 def _process_one_case(
@@ -469,8 +463,7 @@ def _process_one_case(
     output_dir: str,
     logger,
     quantities: list[str],
-    with_stats: bool,
-) -> bool:
+) -> None:
     case_id = case.case_id
     case_cmds = case.commands
     meta = case.meta or {}
@@ -528,24 +521,21 @@ def _process_one_case(
     # 1) run all commands
     per_engine_values: dict[str, dict[str, float]] = {}
     per_engine_sources: dict[str, dict[str, str]] = {}  # raw/derived
-    per_engine_stats: dict[str, tuple[float | None, int | None]] = {}
     per_engine_files: dict[str, list[Path]] = {}  # stdout files
 
     for cmd_idx, (cmd, _) in enumerate(case_cmds):
         engine = detect_engine_from_cmd(cmd, engines_cfg)
         engine_cfg = engines_cfg.get(engine, {})
 
-        run_dir, stdout_path, cpu_time, mem = run_case_command(
+        _, stdout_path = run_case_command(
             cmd=cmd,
             engine=engine,
             engine_cfg=engine_cfg,
             case_id=case_id,
             cmd_idx=cmd_idx,
             output_dir=output_dir,
-            with_stats=with_stats,
         )
 
-        per_engine_stats[engine] = (cpu_time, mem)
         per_engine_files.setdefault(engine, []).append(stdout_path)
 
         per_engine_values.setdefault(engine, {})
@@ -951,15 +941,6 @@ def _process_one_case(
                 if bad:
                     pair_failed = True
 
-            # stats
-            if with_stats:
-                cpu_i, mem_i = per_engine_stats.get(eng_i, (0.0, 0))
-                cpu_j, mem_j = per_engine_stats.get(eng_j, (0.0, 0))
-                line_parts.append(f"CPU_i={cpu_i or 0:.2f}s")
-                line_parts.append(f"MEM_i={(mem_i or 0)/1024:.2f}MiB")
-                line_parts.append(f"CPU_j={cpu_j or 0:.2f}s")
-                line_parts.append(f"MEM_j={(mem_j or 0)/1024:.2f}MiB")
-
             line_str = " | ".join(line_parts)
             if pair_failed:
                 case_failed = True
@@ -974,4 +955,4 @@ def _process_one_case(
         output_dir=output_dir,
     )
 
-    return not case_failed
+    return

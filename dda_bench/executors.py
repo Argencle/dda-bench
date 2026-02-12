@@ -146,57 +146,19 @@ def _apply_prepare_steps(
             raise ValueError(f"Unknown prepare action: {action}")
 
 
-def _run_command_with_stats(
+def _run_command(
     command: str,
     stdout_path: Path,
     stderr_path: Path,
-    time_path: Path | None,
-    with_stats: bool,
     cwd: Path,
     env: dict[str, str] | None = None,
-) -> tuple[float | None, int | None]:
+) -> None:
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if with_stats:
-        if time_path is None:
-            time_path = stdout_path.with_name("time.txt")
-
-        # We want:
-        # - program stdout -> stdout_path
-        # - program stderr -> stderr_path
-        # - /usr/bin/time -v output -> time_path
-        #
-        # /usr/bin/time writes to stderr, so we run it in a shell wrapper:
-        #   (time -v <cmd> 2> time.txt) 2> stderr.txt
-        wrapped = f"(/usr/bin/time -v {command} 2> {time_path.name}) 2> {stderr_path.name}"
-
-        with stdout_path.open("w") as out:
-            subprocess.run(
-                wrapped,
-                shell=True,
-                stdout=out,
-                stderr=subprocess.DEVNULL,  # already redirected in wrapped
-                cwd=cwd,
-                env=env,
-            )
-
-        cpu_time = None
-        max_mem_kb = None
-        if time_path.exists():
-            with time_path.open("r") as f:
-                for line in f:
-                    if "User time (seconds):" in line:
-                        cpu_time = float(line.split(":", 1)[1].strip())
-                    elif "Maximum resident set size" in line:
-                        max_mem_kb = int(line.split(":", 1)[1].strip())
-        return cpu_time, max_mem_kb
 
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
         subprocess.run(
             command, shell=True, stdout=out, stderr=err, cwd=cwd, env=env
         )
-
-    return None, None
 
 
 def run_case_command(
@@ -206,8 +168,7 @@ def run_case_command(
     case_id: str | None,
     cmd_idx: int,
     output_dir: str,
-    with_stats: bool,
-) -> tuple[Path, Path, float | None, int | None]:
+) -> tuple[Path, Path]:
     """
     Execute one command in:
       outputs/<case_id>/<engine>/
@@ -215,7 +176,6 @@ def run_case_command(
     Files:
       stdout_XX.txt
       stderr_XX.txt
-      time_XX.txt (if with_stats)
     """
     safe_case = _sanitize_case_id(case_id)
     run_dir = Path(output_dir) / safe_case / engine
@@ -223,7 +183,6 @@ def run_case_command(
 
     stdout_path = run_dir / f"stdout_{cmd_idx:02d}.txt"
     stderr_path = run_dir / f"stderr_{cmd_idx:02d}.txt"
-    time_path = run_dir / f"time_{cmd_idx:02d}.txt" if with_stats else None
 
     env = _resolve_env(engine_cfg)
     if env is None:
@@ -232,14 +191,12 @@ def run_case_command(
     _apply_prepare_steps(engine_cfg, run_dir, env, cmd)
 
     real_cmd = _build_real_command(cmd, engine, engine_cfg)
-    cpu_time, mem = _run_command_with_stats(
+    _run_command(
         real_cmd,
         stdout_path=stdout_path,
         stderr_path=stderr_path,
-        time_path=time_path,
-        with_stats=with_stats,
         cwd=run_dir,
         env=env,
     )
 
-    return run_dir, stdout_path, cpu_time, mem
+    return run_dir, stdout_path

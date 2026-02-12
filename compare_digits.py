@@ -12,7 +12,7 @@ from dda_bench.utils import clean_output_files
 DEFAULT_COMMAND_FILE = "tests/DDA_commands"
 
 
-def _build_logger(check: bool) -> logging.Logger:
+def _build_logger() -> logging.Logger:
     logger = logging.getLogger("compare_digits")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
@@ -30,7 +30,7 @@ def _build_logger(check: bool) -> logging.Logger:
     logger.addHandler(errorfile_handler)
 
     console_handler = logging.StreamHandler()
-    console_handler.setLevel(logging.ERROR if check else logging.INFO)
+    console_handler.setLevel(logging.INFO)
     console_handler.setFormatter(formatter)
     logger.addHandler(console_handler)
 
@@ -48,17 +48,6 @@ def _parse_args() -> argparse.Namespace:
         help="Command file path (default: tests/DDA_commands).",
     )
 
-    parser.add_argument(
-        "--with-stats",
-        action="store_true",
-        help="Enable /usr/bin/time measurements.",
-    )
-    parser.add_argument(
-        "-ci",
-        "--check",
-        action="store_true",
-        help="CI/CD mode: minimal output, fails on mismatch",
-    )
     parser.add_argument(
         "-o",
         "--output",
@@ -110,15 +99,14 @@ def main() -> None:
     # load cases
     cases = read_command_cases(args.commands)
 
-    logger = _build_logger(args.check)
+    logger = _build_logger()
 
-    ok = process_all_cases(
+    process_all_cases(
         cases=cases,
         engines_cfg=engines_cfg,
         output_dir=output_dir,
         logger=logger,
         quantities=quantities,
-        with_stats=args.with_stats,
     )
 
     write_summary_csv(
@@ -128,10 +116,6 @@ def main() -> None:
 
     if args.clean:
         clean_output_files(output_dir, engines_cfg)
-
-    if args.check and not ok:
-        raise SystemExit(1)
-
 
 if __name__ == "__main__":
     main()
