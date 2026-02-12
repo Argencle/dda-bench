@@ -435,6 +435,141 @@ def _compare_extabs(
     return "NA", False
 
 
+def _build_case_quantities(
+    quantities: list[str],
+    need_int: bool,
+    need_force: bool,
+    need_torque: bool,
+    need_mueller: bool,
+) -> list[str]:
+    """
+    Build per-case quantity list based on needs.
+    """
+    case_quantities: list[str] = []
+    for q in quantities:
+        if q == "int_field" and not need_int:
+            continue
+        if q == "E0" and not (need_int or need_force or need_torque):
+            continue
+        if q in ("force", "Cpr") and not need_force:
+            continue
+        if q in ("torque", "Qtrq") and not need_torque:
+            continue
+        if q == "mueller" and not need_mueller:
+            continue
+        case_quantities.append(q)
+
+    # Ensure required quantities exist even if caller omitted them
+    if need_int and "int_field" not in case_quantities:
+        case_quantities.append("int_field")
+    if (need_int or need_force or need_torque) and "E0" not in case_quantities:
+        case_quantities.append("E0")
+    if need_force and "force" not in case_quantities:
+        case_quantities.append("force")
+    if need_torque and "torque" not in case_quantities:
+        case_quantities.append("torque")
+    if need_mueller and "mueller" not in case_quantities:
+        case_quantities.append("mueller")
+
+    return case_quantities
+
+
+def _run_and_extract_case_commands(
+    case_cmds: list[tuple[str, int]],
+    case_id: str | None,
+    engines_cfg: dict[str, Any],
+    output_dir: str,
+    case_quantities: list[str],
+) -> tuple[
+    dict[str, dict[str, float]],
+    dict[str, dict[str, str]],
+    dict[str, list[Path]],
+]:
+    """
+    Run all commands of one case and extract scalar quantities.
+    """
+    per_engine_values: dict[str, dict[str, float]] = {}
+    per_engine_sources: dict[str, dict[str, str]] = {}
+    per_engine_files: dict[str, list[Path]] = {}
+
+    for cmd_idx, (cmd, _) in enumerate(case_cmds):
+        engine = detect_engine_from_cmd(cmd, engines_cfg)
+        engine_cfg = engines_cfg.get(engine, {})
+
+        _, stdout_path = run_case_command(
+            cmd=cmd,
+            engine=engine,
+            engine_cfg=engine_cfg,
+            case_id=case_id,
+            cmd_idx=cmd_idx,
+            output_dir=output_dir,
+        )
+
+        per_engine_files.setdefault(engine, []).append(stdout_path)
+        per_engine_values.setdefault(engine, {})
+        per_engine_sources.setdefault(engine, {})
+
+        for q in case_quantities:
+            val = extract_quantity_for_engine(engine_cfg, q, stdout_path)
+            if val is not None:
+                per_engine_values[engine][q] = val
+                per_engine_sources[engine][q] = "raw"
+
+    return per_engine_values, per_engine_sources, per_engine_files
+
+
+def _enrich_engine_quantities(
+    per_engine_values: dict[str, dict[str, float]],
+    per_engine_sources: dict[str, dict[str, str]],
+    per_engine_files: dict[str, list[Path]],
+    engines_cfg: dict[str, Any],
+    engines_in_case: list[str],
+) -> None:
+    """
+    Add AEFF/lambda and derived quantities used by comparisons and outputs.
+    """
+    per_engine_aeff: dict[str, float] = {}
+    for eng, files in per_engine_files.items():
+        stdout0 = files[0] if files else None
+        if not stdout0:
+            continue
+
+        run_dir = stdout0.parent
+        extra_paths: list[Path] = []
+        for pat in engines_cfg.get(eng, {}).get("extra_files", []):
+            extra_paths += list(run_dir.glob(pat))
+
+        aeff_m = extract_aeff_meters_for_engine(
+            engines_cfg.get(eng, {}),
+            stdout_path=stdout0,
+            extra_paths=extra_paths,
+        )
+        if aeff_m:
+            per_engine_aeff[eng] = aeff_m
+
+    for eng, aeff_m in per_engine_aeff.items():
+        vals = per_engine_values.setdefault(eng, {})
+        src = per_engine_sources.setdefault(eng, {})
+        vals["aeff"] = aeff_m
+        src["aeff"] = "raw"
+        _fill_cq(vals, src, aeff_m)
+
+    for eng, files in per_engine_files.items():
+        stdout0 = files[0] if files else None
+        if not stdout0:
+            continue
+        lambda_m = extract_lambda_meters_for_engine(
+            engines_cfg.get(eng, {}),
+            stdout_path=stdout0,
+        )
+        if lambda_m is not None:
+            per_engine_values.setdefault(eng, {})["lambda"] = lambda_m
+            per_engine_sources.setdefault(eng, {})["lambda"] = "raw"
+
+    for eng in engines_in_case:
+        _add_recomputed_quantities(eng, per_engine_values, per_engine_sources)
+
+
 # ---------------------------------------------------------------------
 # Main processing
 # ---------------------------------------------------------------------
@@ -489,63 +624,23 @@ def _process_one_case(
 
     skip_pairs = _parse_skip_pairs(case, engines_cfg)
 
-    # Build per-case quantities:
-    # - Always extract the base quantities requested by caller (typically C/Q/residual)
-    # - Only extract/display int_field/force/torque/mueller metrics if the case declares them
-    base_quantities = list(quantities)
-    case_quantities: list[str] = []
-    for q in base_quantities:
-        if q == "int_field" and not need_int:
-            continue
-        if q == "E0" and not (need_int or need_force or need_torque):
-            continue
-        if q in ("force", "Cpr") and not need_force:
-            continue
-        if q in ("torque", "Qtrq") and not need_torque:
-            continue
-        if q == "mueller" and not need_mueller:
-            continue
-        case_quantities.append(q)
-    # Ensure required ones exist even if caller didn't include them
-    if need_int and "int_field" not in case_quantities:
-        case_quantities.append("int_field")
-    if (need_int or need_force or need_torque) and "E0" not in case_quantities:
-        case_quantities.append("E0")
-    if need_force and "force" not in case_quantities:
-        case_quantities.append("force")
-    if need_torque and "torque" not in case_quantities:
-        case_quantities.append("torque")
-    if need_mueller and "mueller" not in case_quantities:
-        case_quantities.append("mueller")
+    case_quantities = _build_case_quantities(
+        quantities=quantities,
+        need_int=need_int,
+        need_force=need_force,
+        need_torque=need_torque,
+        need_mueller=need_mueller,
+    )
 
-    # 1) run all commands
-    per_engine_values: dict[str, dict[str, float]] = {}
-    per_engine_sources: dict[str, dict[str, str]] = {}  # raw/derived
-    per_engine_files: dict[str, list[Path]] = {}  # stdout files
-
-    for cmd_idx, (cmd, _) in enumerate(case_cmds):
-        engine = detect_engine_from_cmd(cmd, engines_cfg)
-        engine_cfg = engines_cfg.get(engine, {})
-
-        _, stdout_path = run_case_command(
-            cmd=cmd,
-            engine=engine,
-            engine_cfg=engine_cfg,
+    per_engine_values, per_engine_sources, per_engine_files = (
+        _run_and_extract_case_commands(
+            case_cmds=case_cmds,
             case_id=case_id,
-            cmd_idx=cmd_idx,
+            engines_cfg=engines_cfg,
             output_dir=output_dir,
+            case_quantities=case_quantities,
         )
-
-        per_engine_files.setdefault(engine, []).append(stdout_path)
-
-        per_engine_values.setdefault(engine, {})
-        per_engine_sources.setdefault(engine, {})
-
-        for q in case_quantities:
-            val = extract_quantity_for_engine(engine_cfg, q, stdout_path)
-            if val is not None:
-                per_engine_values[engine][q] = val
-                per_engine_sources[engine][q] = "raw"
+    )
 
     engines_in_case = list(per_engine_values.keys())
     engines_set = set(engines_in_case)
@@ -556,56 +651,13 @@ def _process_one_case(
                 f"(present: {sorted(engines_set)})"
             )
 
-    case_failed = False
-
-    # 2) compute AEFF + fill missing C<->Q for results (always)
-    per_engine_aeff: dict[str, float] = {}
-    for eng, files in per_engine_files.items():
-        stdout0 = files[0] if files else None
-        if not stdout0:
-            continue
-
-        # extra paths live in run_dir (same directory as stdout files)
-        run_dir = stdout0.parent
-        extra_paths: list[Path] = []
-        for pat in engines_cfg.get(eng, {}).get("extra_files", []):
-            extra_paths += list(run_dir.glob(pat))
-
-        aeff_m = extract_aeff_meters_for_engine(
-            engines_cfg.get(eng, {}),
-            stdout_path=stdout0,
-            extra_paths=extra_paths,
-        )
-        if aeff_m:
-            per_engine_aeff[eng] = aeff_m
-
-    for eng, aeff_m in per_engine_aeff.items():
-        vals = per_engine_values.setdefault(eng, {})
-        src = per_engine_sources.setdefault(eng, {})
-        vals["aeff"] = aeff_m
-        src["aeff"] = "raw"
-        _fill_cq(vals, src, aeff_m)
-
-    # collect lambda once per engine (needed for torque recalc persistence)
-    for eng, files in per_engine_files.items():
-        stdout0 = files[0] if files else None
-        if not stdout0:
-            continue
-        lambda_m = extract_lambda_meters_for_engine(
-            engines_cfg.get(eng, {}),
-            stdout_path=stdout0,
-        )
-        if lambda_m is not None:
-            per_engine_values.setdefault(eng, {})["lambda"] = lambda_m
-            per_engine_sources.setdefault(eng, {})["lambda"] = "raw"
-
-    # add recalculated quantities for results.json / summary.csv
-    for eng in engines_in_case:
-        _add_recomputed_quantities(
-            eng,
-            per_engine_values,
-            per_engine_sources,
-        )
+    _enrich_engine_quantities(
+        per_engine_values=per_engine_values,
+        per_engine_sources=per_engine_sources,
+        per_engine_files=per_engine_files,
+        engines_cfg=engines_cfg,
+        engines_in_case=engines_in_case,
+    )
 
     # 3) pairwise compare
     # We DISPLAY "Ext" and "Abs" instead of Cext/Cabs/Qext/Qabs columns,
@@ -943,7 +995,6 @@ def _process_one_case(
 
             line_str = " | ".join(line_parts)
             if pair_failed:
-                case_failed = True
                 logger.error(line_str)
             else:
                 logger.info(line_str)
