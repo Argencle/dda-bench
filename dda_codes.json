@@ -191,17 +191,20 @@
       "Qext": {
         "type": "text",
         "pattern": "Q_ext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1
+        "unit_factor": 1,
+        "take_last": true
       },
       "Qabs": {
         "type": "text",
         "pattern": "Q_abs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1
+        "unit_factor": 1,
+        "take_last": true
       },
       "residual1": {
         "type": "text",
-        "pattern": "(?:frac\\.err|f\\.err)\\s*=\\s*(?P<value>[0-9.eE+-]+)",
-        "unit_factor": 1.0
+        "pattern": "(?m)^\\s*>?\\s*(?:(?:QMRCCG\\s+IT=\\s*0\\s+f\\.err)|(?:GPBICG\\s+IT=\\s*1\\s+f\\.err)|(?:ZBCG2\\s+IT=\\s*1\\s+f\\.err)|(?:iter=\\s*1\\s+frac\\.err))\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
       },
       "Qtrq": {
         "type": "text_vec3_norm",
