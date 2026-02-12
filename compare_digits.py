@@ -2,14 +2,14 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from dda_bench.config import DDA_CODES_JSON
 from dda_bench.commands import read_command_cases
 from dda_bench.extractors import load_engine_config
 from dda_bench.reporters import process_all_cases, write_summary_csv
 from dda_bench.utils import clean_output_files
 
 
-DEFAULT_COMMAND_FILE = "tests/DDA_commands"
+DEFAULT_COMMAND_FILE = "example/DDA_commands"
+DEFAULT_DDA_CODES_JSON = "example/dda_codes.json"
 
 
 def _build_logger() -> logging.Logger:
@@ -45,7 +45,12 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--commands",
         default=DEFAULT_COMMAND_FILE,
-        help="Command file path (default: tests/DDA_commands).",
+        help="Command file path (default: example/DDA_commands).",
+    )
+    parser.add_argument(
+        "--code-config",
+        default=DEFAULT_DDA_CODES_JSON,
+        help="Engine config JSON path (default: example/dda_codes.json).",
     )
 
     parser.add_argument(
@@ -75,7 +80,7 @@ def main() -> None:
     os.environ["OMP_NUM_THREADS"] = str(args.omp)
 
     # engine config
-    engines_cfg = load_engine_config(DDA_CODES_JSON)
+    engines_cfg = load_engine_config(Path(args.code_config))
 
     # quantities selection
     quantities = [
@@ -116,6 +121,7 @@ def main() -> None:
 
     if args.clean:
         clean_output_files(output_dir, engines_cfg)
+
 
 if __name__ == "__main__":
     main()
