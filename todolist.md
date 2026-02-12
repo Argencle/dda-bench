@@ -6,7 +6,4 @@
 
 ## Nettoyage
 
-* **Structure d’arborescence claire**
-  → Séparer runner / extractors / comparators / config pour une maintenance plus simple.
-
 * **Refactoriser pour en faire un package PyPI**

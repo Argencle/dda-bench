@@ -2,10 +2,11 @@ import os
 import argparse
 import logging
 from pathlib import Path
-from dda_bench.commands import read_command_cases
-from dda_bench.extractors import load_engine_config
-from dda_bench.reporters import process_all_cases, write_summary_csv
-from dda_bench.utils import clean_output_files
+from .commands import read_command_cases
+from .extractors import load_engine_config
+from .comparison import process_all_cases
+from .io_results import write_summary_csv
+from .utils import clean_output_files
 
 
 DEFAULT_COMMAND_FILE = "example/DDA_commands"
@@ -13,18 +14,18 @@ DEFAULT_DDA_CODES_JSON = "example/dda_codes.json"
 
 
 def _build_logger() -> logging.Logger:
-    logger = logging.getLogger("compare_digits")
+    logger = logging.getLogger("dda_bench.cli")
     logger.setLevel(logging.INFO)
     logger.handlers.clear()
 
     formatter = logging.Formatter("%(levelname)s | %(message)s")
 
-    logfile_handler = logging.FileHandler("compare_digits.log")
+    logfile_handler = logging.FileHandler("dda_bench.log")
     logfile_handler.setLevel(logging.INFO)
     logfile_handler.setFormatter(formatter)
     logger.addHandler(logfile_handler)
 
-    errorfile_handler = logging.FileHandler("compare_digits.errors.log")
+    errorfile_handler = logging.FileHandler("dda_bench.errors.log")
     errorfile_handler.setLevel(logging.ERROR)
     errorfile_handler.setFormatter(formatter)
     logger.addHandler(errorfile_handler)

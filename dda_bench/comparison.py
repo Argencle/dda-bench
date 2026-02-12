@@ -1,5 +1,3 @@
-import csv
-import json
 import math
 from pathlib import Path
 from typing import Any
@@ -13,64 +11,23 @@ from .extractors import (
     extract_aeff_meters_for_engine,
     extract_lambda_meters_for_engine,
 )
+from .comparators import (
+    digits,
+    compare_extabs,
+    mueller_digits_from_column_mean_rel_errors,
+    aligned_force_metric,
+    aligned_torque_metric,
+)
+from .io_results import write_case_results
 from .utils import (
     compute_rel_err,
     matching_digits_from_rel_err,
-    aligned_force_metric,
-    aligned_torque_metric,
 )
 
 # display widths
 CASE_W = 45
 ENGINE_W = 7
 QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
-
-# ---------------------------------------------------------------------
-# Helpers: results + summary
-# ---------------------------------------------------------------------
-
-
-def _write_case_results(
-    case_id: str | None,
-    per_engine_values: dict[str, dict[str, float]],
-    output_dir: str,
-) -> None:
-    if not case_id:
-        case_id = "unknown_case"
-
-    case_dir = Path(output_dir) / case_id
-    case_dir.mkdir(parents=True, exist_ok=True)
-
-    out = case_dir / "results.json"
-    data: dict[str, Any] = {"case": case_id, "engines": {}}
-
-    for eng, vals in per_engine_values.items():
-        data["engines"][eng] = dict(vals)
-
-    out.write_text(json.dumps(data, indent=2))
-
-
-def write_summary_csv(output_dir: str, csv_path: str) -> None:
-    out = Path(output_dir)
-    rows: list[dict[str, Any]] = []
-
-    for result_file in out.glob("*/results.json"):
-        data = json.loads(result_file.read_text())
-        case_id = data.get("case", "unknown_case")
-
-        for eng, vals in data.get("engines", {}).items():
-            row = {"case": case_id, "engine": eng, **vals}
-            rows.append(row)
-
-    if not rows:
-        return
-
-    fieldnames = sorted({k for r in rows for k in r.keys()})
-    with open(csv_path, "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fieldnames)
-        w.writeheader()
-        w.writerows(rows)
-
 
 # ---------------------------------------------------------------------
 # Meta parsing: tolerances + skip_pairs
@@ -323,116 +280,6 @@ def _add_recomputed_quantities(
     if qtrq_val is not None and name_qtrq == "Qtrq*":
         vals["Qtrq_recalc"] = qtrq_val
         src["Qtrq_recalc"] = "derived"
-
-
-# ---------------------------------------------------------------------
-# Ext/Abs display logic (C vs Q, raw vs derived)
-# ---------------------------------------------------------------------
-
-
-def _digits(a: float, b: float) -> int | None:
-    rel = compute_rel_err(a, b)
-    return matching_digits_from_rel_err(rel)
-
-
-def _mueller_digits_from_column_mean_rel_errors(
-    a: list[float], b: list[float], ncols: int = 16
-) -> int | None:
-    """
-    Mueller aggregation:
-      1) reshape flat arrays as rows of ncols
-      2) compute mean relative error for each column
-      3) aggregate with min(mean_rel_error) across columns
-      4) convert to matching digits
-    """
-    if not a or not b or len(a) != len(b) or ncols <= 0:
-        return None
-    if len(a) % ncols != 0:
-        return None
-
-    mean_rel_cols: list[float] = []
-    for c in range(ncols):
-        col_a = a[c::ncols]
-        col_b = b[c::ncols]
-        rel_col = compute_mean_relative_error(col_a, col_b)
-        if rel_col is None:
-            return None
-        mean_rel_cols.append(rel_col)
-
-    rel = min(mean_rel_cols)
-    return matching_digits_from_rel_err(rel)
-
-
-def _compare_extabs(
-    per_vals: dict[str, dict[str, float]],
-    per_src: dict[str, dict[str, str]],
-    eng_i: str,
-    eng_j: str,
-    c_key: str,
-    q_key: str,
-    tol_min: int,
-    tol_max: int,
-) -> tuple[str, bool]:
-    """
-    Returns:
-      (display_token, failed_bool)
-
-    Rules:
-      1) If BOTH engines have RAW C => compare C and show "...C"
-      2) Else if BOTH have RAW Q => compare Q and show "...Q"
-      3) Else if both have C (raw+derived mix) => compare C and show "...C*"
-      4) Else if both have Q (raw+derived mix) => compare Q and show "...Q*"
-      5) Else => "NA" (no fail)
-    """
-    vi = per_vals.get(eng_i, {})
-    vj = per_vals.get(eng_j, {})
-    si = per_src.get(eng_i, {})
-    sj = per_src.get(eng_j, {})
-
-    # 1) raw C for both
-    if (
-        c_key in vi
-        and c_key in vj
-        and si.get(c_key) == "raw"
-        and sj.get(c_key) == "raw"
-    ):
-        d = _digits(vi[c_key], vj[c_key])
-        if d is None:
-            return "NA❌", True
-        bad = d < tol_min or d > tol_max
-        return f"{d}C{'❌' if bad else ''}", bad
-
-    # 2) raw Q for both
-    if (
-        q_key in vi
-        and q_key in vj
-        and si.get(q_key) == "raw"
-        and sj.get(q_key) == "raw"
-    ):
-        d = _digits(vi[q_key], vj[q_key])
-        if d is None:
-            return "NA❌", True
-        bad = d < tol_min or d > tol_max
-        return f"{d}Q{'❌' if bad else ''}", bad
-
-    # 3) both have C (derived mix)
-    if c_key in vi and c_key in vj:
-        d = _digits(vi[c_key], vj[c_key])
-        if d is None:
-            return "NA❌", True
-        bad = d < tol_min or d > tol_max
-        return f"{d}C*{'❌' if bad else ''}", bad
-
-    # 4) both have Q (derived mix)
-    if q_key in vi and q_key in vj:
-        d = _digits(vi[q_key], vj[q_key])
-        if d is None:
-            return "NA❌", True
-        bad = d < tol_min or d > tol_max
-        return f"{d}Q*{'❌' if bad else ''}", bad
-
-    # 5) no common metric
-    return "NA", False
 
 
 def _build_case_quantities(
@@ -690,7 +537,7 @@ def _process_one_case(
             pair_failed = False
 
             # --- Ext / Abs ---
-            ext_txt, ext_bad = _compare_extabs(
+            ext_txt, ext_bad = compare_extabs(
                 per_vals=per_engine_values,
                 per_src=per_engine_sources,
                 eng_i=eng_i,
@@ -704,7 +551,7 @@ def _process_one_case(
             if ext_bad:
                 pair_failed = True
 
-            abs_txt, abs_bad = _compare_extabs(
+            abs_txt, abs_bad = compare_extabs(
                 per_vals=per_engine_values,
                 per_src=per_engine_sources,
                 eng_i=eng_i,
@@ -726,7 +573,7 @@ def _process_one_case(
                 if v_i is None or v_j is None:
                     line_parts.append(f"{q:<{QNAME_W}}:NA")
                 else:
-                    d = _digits(v_i, v_j)
+                    d = digits(v_i, v_j)
                     if d is None:
                         line_parts.append(f"{q:<{QNAME_W}}:NA❌")
                         pair_failed = True
@@ -935,7 +782,7 @@ def _process_one_case(
                         )
 
                         if series_i and series_j:
-                            d = _mueller_digits_from_column_mean_rel_errors(
+                            d = mueller_digits_from_column_mean_rel_errors(
                                 series_i, series_j
                             )
                             if d is None:
@@ -1000,7 +847,7 @@ def _process_one_case(
                 logger.info(line_str)
 
     # 4) persist results
-    _write_case_results(
+    write_case_results(
         case_id=case_id,
         per_engine_values=per_engine_values,
         output_dir=output_dir,
