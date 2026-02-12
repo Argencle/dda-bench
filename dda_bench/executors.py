@@ -156,8 +156,16 @@ def _run_command(
     stdout_path.parent.mkdir(parents=True, exist_ok=True)
 
     with stdout_path.open("w") as out, stderr_path.open("w") as err:
-        subprocess.run(
+        completed = subprocess.run(
             command, shell=True, stdout=out, stderr=err, cwd=cwd, env=env
+        )
+
+    if completed.returncode != 0:
+        raise RuntimeError(
+            "Command execution failed "
+            f"(exit={completed.returncode}) in '{cwd}': {command}\n"
+            f"See stderr: {stderr_path}\n"
+            f"See stdout: {stdout_path}"
         )
 
 
