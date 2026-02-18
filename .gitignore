@@ -3,6 +3,7 @@
 __pycache__/
 .mypy_cache/
 .DS_Store
+.tox/
 
 # editors / IDE
 .vscode/

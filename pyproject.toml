@@ -1,0 +1,46 @@
+[project]
+name = "dda-bench"
+version = "0.1.0"
+description = "Benchmark and cross-compare DDA code."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "GPL-3.0"
+license-files = ["LICENSE"]
+authors = [{ name = "Clément Argentin", email = "argentin-clement@outlook.fr" }]
+keywords = ["DDA", "ADDA", "comparison"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+  "Environment :: Console",
+  "Intended Audience :: Science/Research",
+  "Intended Audience :: Education",
+  "Topic :: Scientific/Engineering :: Physics",
+  "Operating System :: OS Independent",
+  "Development Status :: 4 - Beta",
+]
+dependencies = [
+  "h5py>=3.15.1",
+  "pandas>=2.3.3",
+  "ddscatcli>=1.0.4",
+]
+
+[project.scripts]
+dda-bench = "dda_bench.cli:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+dda_bench = ["examples/*", "bin/*"]
+
+[project.urls]
+Repository = "https://github.com/Argencle/dda-bench"
+Changelog = "https://github.com/Argencle/dda-bench/CHANGELOG.md"
