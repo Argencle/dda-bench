@@ -1,6 +1,7 @@
 import os
 import argparse
 import logging
+from importlib import resources
 from pathlib import Path
 from .commands import read_command_cases
 from .extractors import load_engine_config
@@ -9,8 +10,9 @@ from .io_results import write_summary_csv
 from .utils import clean_output_files
 
 
-DEFAULT_COMMAND_FILE = "example/DDA_commands"
-DEFAULT_DDA_CODES_JSON = "example/dda_codes.json"
+DEFAULT_COMMAND_FILE = "DDA_commands"
+DEFAULT_DDA_CODES_JSON = "dda_codes.json"
+DEFAULT_BIN_DIR = "bin"
 
 
 def _build_logger() -> logging.Logger:
@@ -45,13 +47,11 @@ def _parse_args() -> argparse.Namespace:
 
     parser.add_argument(
         "--commands",
-        default=DEFAULT_COMMAND_FILE,
-        help="Command file path (default: example/DDA_commands).",
+        help="Command file path.",
     )
     parser.add_argument(
         "--code-config",
-        default=DEFAULT_DDA_CODES_JSON,
-        help="Engine config JSON path (default: example/dda_codes.json).",
+        help="Engine config JSON path.",
     )
 
     parser.add_argument(
@@ -70,18 +70,104 @@ def _parse_args() -> argparse.Namespace:
         default="1",
         help="Set OMP_NUM_THREADS (default: 1).",
     )
+    parser.add_argument(
+        "--init",
+        action="store_true",
+        help=(
+            "Create starter files (DDA_commands, dda_codes.json, and bin/) "
+            "in current directory and exit."
+        ),
+    )
 
     return parser.parse_args()
+
+
+def _resolve_input_files(args: argparse.Namespace) -> tuple[str, str]:
+    commands_arg = args.commands
+    config_arg = args.code_config
+    default_commands = Path(DEFAULT_COMMAND_FILE)
+    default_config = Path(DEFAULT_DDA_CODES_JSON)
+
+    commands_path = (
+        Path(commands_arg).expanduser().resolve()
+        if commands_arg
+        else (
+            default_commands.resolve() if default_commands.exists() else None
+        )
+    )
+    config_path = (
+        Path(config_arg).expanduser().resolve()
+        if config_arg
+        else default_config.resolve() if default_config.exists() else None
+    )
+
+    if commands_path is None or config_path is None:
+        raise FileNotFoundError(
+            "Missing input files. Provide both --commands and --code-config, "
+            "or place DDA_commands and dda_codes.json in the current directory, "
+            "or run --init first."
+        )
+
+    return str(commands_path), str(config_path)
+
+
+def _write_init_templates(target_dir: Path) -> None:
+    target_dir.mkdir(parents=True, exist_ok=True)
+    dst_commands = target_dir / DEFAULT_COMMAND_FILE
+    dst_codes = target_dir / DEFAULT_DDA_CODES_JSON
+    dst_bin = target_dir / DEFAULT_BIN_DIR
+
+    src_commands = resources.files("dda_bench").joinpath(
+        f"examples/{DEFAULT_COMMAND_FILE}"
+    )
+    src_codes = resources.files("dda_bench").joinpath(
+        f"examples/{DEFAULT_DDA_CODES_JSON}"
+    )
+    src_bin = resources.files("dda_bench").joinpath(DEFAULT_BIN_DIR)
+
+    def _copy_tree(src, dst: Path, bin_root: Path) -> bool:
+        if src.is_dir():
+            copied_any = False
+            for child in src.iterdir():
+                if _copy_tree(child, dst / child.name, bin_root):
+                    copied_any = True
+            return copied_any
+
+        rel = dst.relative_to(bin_root)
+        keep = rel.parts[0] == "diel" or dst.suffix in {".dat", ".par"}
+        if not keep:
+            return False
+
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        dst.write_bytes(src.read_bytes())
+        return True
+
+    dst_commands.write_text(src_commands.read_text())
+    dst_codes.write_text(src_codes.read_text())
+    dst_bin.mkdir(parents=True, exist_ok=True)
+    for child in src_bin.iterdir():
+        _copy_tree(child, dst_bin / child.name, dst_bin)
+
+    print(f"Initialized templates in: {target_dir}")
+    print(f"- {dst_commands.name}")
+    print(f"- {dst_codes.name}")
+    print(f"- {dst_bin.name}/")
 
 
 def main() -> None:
     args = _parse_args()
 
+    if args.init:
+        _write_init_templates(Path.cwd())
+        return
+
+    commands_path, code_config_path = _resolve_input_files(args)
+
     # runtime env
     os.environ["OMP_NUM_THREADS"] = str(args.omp)
 
     # engine config
-    engines_cfg = load_engine_config(Path(args.code_config))
+    engines_cfg = load_engine_config(Path(code_config_path))
 
     # quantities selection
     quantities = [
@@ -103,7 +189,7 @@ def main() -> None:
     Path(output_dir).mkdir(parents=True, exist_ok=True)
 
     # load cases
-    cases = read_command_cases(args.commands)
+    cases = read_command_cases(commands_path)
 
     logger = _build_logger()
 

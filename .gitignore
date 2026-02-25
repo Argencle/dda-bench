@@ -8,15 +8,21 @@ __pycache__/
 # editors / IDE
 .vscode/
 
+# build artifacts
+dist/
+*.egg-info/
+build/
+
 # Project‑specific folders
 adda/
 if-dda/
 ddscat*/
-bin/*
-!bin/ddscat.par
-!bin/ddpostprocess.par
-!bin/shape.dat
-!bin/shape_ifdda.dat
+dda_bench/bin/*
+!dda_bench/bin/diel/
+!dda_bench/bin/ddscat.par
+!dda_bench/bin/ddpostprocess.par
+!dda_bench/bin/shape.dat
+!dda_bench/bin/shape_ifdda.dat
 
 # Output files/folders
 outputs/

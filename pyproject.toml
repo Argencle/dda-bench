@@ -38,9 +38,15 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 include-package-data = true
 
+[tool.setuptools.packages.find]
+include = ["dda_bench*"]
+
 [tool.setuptools.package-data]
-dda_bench = ["examples/*", "bin/*"]
+dda_bench = ["examples/*", "bin/*.dat", "bin/*.par", "bin/diel/*"]
 
 [project.urls]
 Repository = "https://github.com/Argencle/dda-bench"
 Changelog = "https://github.com/Argencle/dda-bench/CHANGELOG.md"
+
+[tool.mypy]
+ignore_missing_imports = true

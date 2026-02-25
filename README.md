@@ -16,12 +16,26 @@ You must provide executables and point your config to valid paths.
 ### Run benchmark/comparison
 
 ```bash
+dda-bench --init
+```
+
+This creates starter files in current directory:
+- `DDA_commands`
+- `dda_codes.json`
+- `bin/`
+
+The starter `dda_codes.json` points to executables under `bin/`.
+`--init` copies only `bin/diel/*` and `bin/*.dat`/`bin/*.par` support files, not solver executables.
+
+Then run:
+
+```bash
 dda-bench
 ```
 
-By default it uses packaged example files:
-- `DDA_commands`
-- `dda_codes.json`
+`dda-bench` without options expects:
+- `./DDA_commands`
+- `./dda_codes.json`
 
 Override with your own files:
 
