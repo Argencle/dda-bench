@@ -385,23 +385,25 @@ ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ELLIPSOID 
 # @tol: 11 16
 # @tol_res: 11 16
 #----------Bisphere----------#
-./adda -lambda 0.5 -shape bisphere 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1 -no_vol_cor
-./ifdda -lambda 500 -object nspheres 2 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 30 -ninitest 0 -prop 0 0 -pos 0 0 0 0 0 200
+adda -lambda 0.5 -shape bisphere 1 -size 0.2 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1 -no_vol_cor
+ifdda -lambda 500 -object nspheres 2 100 100 -methodeit QMRCLA -epsmulti 1.69 0.2 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 30 -ninitest 0 -prop 0 0 -pos 0 0 0 0 0 200
 # @case: bisphere_fcd_qmr_2
 # @tol: 11 16
 # @tol_res: 11 16
 #----------Bisphere 2----------#
-./adda -lambda 0.5 -shape bisphere 1 -eq_rad 0.1 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1
+adda -lambda 0.5 -shape bisphere 1 -eq_rad 0.1 -iter qmr -m 1.302265942870714 0.07678923076154483 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1
 ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "30 30 30" -CSHAPE ELLIPSO_2 -SHPAR "15 15 15" -NCOMP 2 -DIEL "diel/m1.302265942870714_0.07678923076154483" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ NOTORQ -ETASCA 10 -run
 # @case: coated_fcd_qmr_empty
 # @tol: 11 16
 # @tol_res: 11 16
 #----------Empty coated sphere (inhomogeneous)----------#
-./adda -lambda 0.5 -shape coated 0.5 -eq_rad 0.1 -iter qmr -m 1.302265942870714 0.07678923076154483 1.0000000001 0.0 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1
-./ifdda -lambda 500 -object concentricsphere 2 49.77702562325 99.5540512465 -methodeit QMRCLA -epsmulti 1.00000001 0.0 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -prop 0 0
+adda -lambda 0.5 -shape coated 0.5 -eq_rad 0.1 -iter qmr -m 1.302265942870714 0.07678923076154483 1.0000000001 0.0 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -scat dr -prop 0 0 1
+ifdda -lambda 500 -object concentricsphere 2 49.77702562325 99.5540512465 -methodeit QMRCLA -epsmulti 1.00000001 0.0 1.69 0.2 -tolinit 1.d-4 -polarizability FG -nnnr 15 -ninitest 0 -prop 0 0
 ddscatcli -CMDSOL QMRCCG -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ONIONSHEL -SHPAR "1 15 0.5" -NCOMP 3 -DIEL "diel/m1.0_0.0" -DIEL "diel/m1.302265942870714_0.07678923076154483" -DIEL "diel/m1.302265942870714_0.07678923076154483" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 1 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ NOTORQ -ETASCA 10 -run
-
+# @case: sphere_ani_diag_fcd_bicgstab
+# @tol: 4 7
+# @tol_res: 4 7
 #----------Ani sphere (diagonal)----------#
 ddscatcli -CMDSOL PBCGST -CALPHA FLTRCD -MEM_ALLOW "15 15 15" -CSHAPE ANIELLIPS -SHPAR "15 15 15" -NCOMP 3 -DIEL "diel/m1.302265942870714_0.07678923076154483" -DIEL "diel/m1.50_0.00" -DIEL "diel/m1.70_0.10" -WAVELENGTHS "0.5 0.5 1 'LIN'" -AEFF "0.1 0.1 1 'LIN'" -TOL 1.e-4 -IORTH 2 -POL_E01 "(0,0) (1,0) (0,0)" -ROT_BETA "0 0 1" -ROT_THETA "0 0 1" -ROT_PHI "0 0 1" -CMDTRQ NOTORQ -ETASCA 10 -run
-./adda -lambda 0.5 -shape sphere -eq_rad 0.1 -iter bicgstab -m 1.302265942870714 0.07678923076154483 1.5 0.0 1.7 0.1 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -anisotr -prop 1 0 0 -scat dr
+adda -lambda 0.5 -shape sphere -eq_rad 0.1 -iter bicgstab -m 1.302265942870714 0.07678923076154483 1.5 0.0 1.7 0.1 -eps 4 -pol fcd -int fcd -grid 15 -init_field zero -anisotr -prop 1 0 0 -scat dr
 # IFDDA is not possible: "Polarizability should be CM or RR with anisotropy"
