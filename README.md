@@ -13,6 +13,9 @@ pip install dda-bench
 This package does not ship external DDA solvers.
 You must provide executables and point your config to valid paths.
 
+Full configuration reference:
+- [`docs/configuration.md`](docs/configuration.md)
+
 ### Run benchmark/comparison
 
 ```bash
