@@ -1,0 +1,229 @@
+{
+  "ifdda": {
+    "detect_substrings": ["ifdda"],
+    "exe": "bin/ifdda",
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/shape_ifdda.dat",
+        "dst": "shape_ifdda.dat",
+        "when_contains": " -object arbitrary "
+      }
+    ],
+    "aeff": {
+      "source": "stdout",
+      "n_dipoles_pattern": "Number of subunit for the object\\s*:\\s*(?P<value>\\d+)",
+      "mesh_size_pattern": "Size of the mesh size\\s*:\\s*(?P<value>[0-9.eE+-]+)",
+      "unit": "meter"
+    },
+    "lambda": {
+      "type": "text",
+      "pattern": "Wavelength\\s*:\\s*(?P<value>[0-9.eE+-]+)",
+      "unit_factor": 1e-9
+    },
+    "outputs": {
+      "Cext": {
+        "type": "text",
+        "pattern": "Cext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "Cabs": {
+        "type": "text",
+        "pattern": "Cabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "(?m)^\\s*RESIDU[E]?:?\\s+(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "force": {
+        "type": "text",
+        "pattern": "Modulus of the force\\s*:\\s*(?P<value>[0-9eE+\\.-]+)",
+        "unit_factor": 1.0
+      },
+      "E0": {
+        "type": "text",
+        "pattern": "Field\\s*:\\s*\\(\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0
+      },
+      "torque": {
+        "type": "text",
+        "pattern": "Modulus of the (?:optical\\s+)?torque\\s*:?[\\s]*(?P<value>[0-9eE+\\.-]+)",
+        "unit_factor": 1.0
+      }
+    },
+    "int_field": {
+      "source": "run_dir",
+      "path": "ifdda.h5",
+      "type": "hdf5",
+      "dataset": "Near Field/Macroscopic field modulus",
+      "transforms": [
+        { "type": "filter_nonzero" },
+        { "type": "divide_by_quantity", "quantity": "E0" },
+        { "type": "square" }
+      ]
+    },
+    "cleanup": {
+      "remove_names": ["inputmatlab.mat", "filenameh5", "ifdda.h5", "shape_ifdda.dat"]
+    }
+  },
+
+  "adda": {
+    "detect_substrings": ["adda"],
+    "exe": "bin/adda",
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/shape.dat",
+        "dst": "shape.dat",
+        "when_contains": " -shape read "
+      }
+    ],
+    "outputs": {
+      "Cext": {
+        "type": "text",
+        "pattern": "Cext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "Cabs": {
+        "type": "text",
+        "pattern": "Cabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1e-12,
+        "take_last": true
+      },
+      "Qext": {
+        "type": "text",
+        "pattern": "Qext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1,
+        "take_last": true
+      },
+      "Qabs": {
+        "type": "text",
+        "pattern": "Qabs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1,
+        "take_last": true
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "RE_001\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
+      },
+      "Cpr": {
+        "type": "text_vec3_norm",
+        "pattern": "Cpr\\s*=\\s*\\(\\s*(?P<x>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<y>[0-9eE+\\.\\-]+)\\s*,\\s*(?P<z>[0-9eE+\\.\\-]+)\\s*\\)",
+        "unit_factor": 1e-12
+      }
+    },
+    "int_field": {
+      "source": "run_dir_glob",
+      "pattern": "run*/*IntField-Y",
+      "type": "csv",
+      "sep": " ",
+      "column": "|E|^2",
+      "select": "last_run"
+    },
+    "mueller": {
+      "source": "run_dir_glob",
+      "pattern": "run*/*mueller",
+      "type": "csv_columns",
+      "sep": "\\s+",
+      "columns": [
+        "s11",
+        "s12",
+        "s13",
+        "s14",
+        "s21",
+        "s22",
+        "s23",
+        "s24",
+        "s31",
+        "s32",
+        "s33",
+        "s34",
+        "s41",
+        "s42",
+        "s43",
+        "s44"
+      ],
+      "select": "last_run"
+    },
+    "cleanup": {
+      "remove_globs": ["run*"],
+      "remove_names": ["ExpCount", "shape.dat"]
+    }
+  },
+
+  "ddscat": {
+    "detect_substrings": ["ddscatcli"],
+    "env": {
+      "DDSCAT_PAR": "bin/ddscat.par",
+      "DDSCAT_EXE": "bin/ddscat"
+    },
+    "prepare": [
+      {
+        "action": "symlink",
+        "src": "bin/diel",
+        "dst": "diel"
+      },
+      {
+        "action": "symlink",
+        "src": "bin/shape.dat",
+        "dst": "shape.dat",
+        "when_contains": " -CSHAPE FROM_FILE "
+      },
+      {
+        "action": "copy_env_file",
+        "env_key": "DDSCAT_PAR",
+        "dst": "ddscat.par",
+        "set_env_to_dst": true
+      }
+    ],
+    "extra_files": ["w000r000.avg", "ddscat.log_000"],
+    "aeff": {
+      "source": "extra",
+      "pattern": ">\\s*DDSCAT\\s+(?P<value>[0-9.eE+-]+)\\s*=\\s*AEFF",
+      "unit": "micron"
+    },
+    "outputs": {
+      "Qext": {
+        "type": "text",
+        "pattern": "Q_ext\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1,
+        "take_last": true
+      },
+      "Qabs": {
+        "type": "text",
+        "pattern": "Q_abs\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1,
+        "take_last": true
+      },
+      "residual1": {
+        "type": "text",
+        "pattern": "(?m)^\\s*>?\\s*(?:(?:QMRCCG\\s+IT=\\s*0\\s+f\\.err)|(?:GPBICG\\s+IT=\\s*1\\s+f\\.err)|(?:ZBCG2\\s+IT=\\s*1\\s+f\\.err)|(?:iter=\\s*1\\s+frac\\.err))\\s*=\\s*(?P<value>[0-9.eE+-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
+      },
+      "Qtrq": {
+        "type": "text_vec3_norm",
+        "pattern": "Qtrq\\(1\\).*\\nJO=1:\\s+(?:[0-9eE+\\.\\-]+\\s+){6}(?P<x>[0-9eE+\\.\\-]+)\\s+(?P<y>[0-9eE+\\.\\-]+)\\s+(?P<z>[0-9eE+\\.\\-]+)",
+        "unit_factor": 1.0,
+        "take_last": true
+      }
+    },
+    "mueller": {
+      "source": "run_dir_glob",
+      "pattern": "w*.avg",
+      "type": "text_table_columns",
+      "header_pattern": "^\\s*theta\\s+phi\\s+Pol\\.\\s+S_11\\b",
+      "value_start_index": 3,
+      "value_count": 16
+    },
+    "cleanup": {
+      "remove_names": ["diel", "mtable", "qtable", "qtable2", "target.out"],
+      "remove_globs": ["w*.avg", "ddscat.par.bak*"]
+    }
+  }
+}

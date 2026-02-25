@@ -1,70 +1,82 @@
-import os
 import math
 import shutil
-import re
 from pathlib import Path
-from typing import Optional
 
 
-def compute_rel_err(
-    val1: Optional[float], val2: Optional[float]
-) -> Optional[float]:
+def compute_rel_err(val1: float | None, val2: float | None) -> float | None:
+    """
+    Relative error:
+      rel = |v1 - v2| / max(|v1|, |v2|)
+    """
     if val1 is None or val2 is None:
         return None
-    if val2 == 0:
-        return None
-    return abs(val1 - val2) / abs(val2)
+    den = max(abs(val1), abs(val2))
+    if den == 0.0:
+        return 0.0
+    return abs(val1 - val2) / den
 
 
 def matching_digits_from_rel_err(
-    rel_err: Optional[float],
-) -> Optional[int]:
-    if rel_err is None or rel_err <= 0:
-        return None
-    return int(-math.log10(rel_err))  # int guarante at least this many digits
-
-
-def extract_eps_from_adda(cmd: str) -> Optional[int]:
+    rel_err: float | None,
+) -> int | None:
     """
-    Extract -eps N from an ADDA command line string.
-    Returns None if not found.
+    Convert relative error to matching decimal digits.
+    - rel_err == 0 => cap digits (perfect match)
+    - rel_err < 0 or NaN/inf => None
     """
-    m = re.search(r"-eps\s+(\d+)", cmd)
-    if not m:
+    cap: int = 16
+    if rel_err is None:
         return None
-    return int(m.group(1))
+    if not math.isfinite(rel_err) or rel_err < 0:
+        return None
+    if rel_err == 0.0:
+        return cap
+
+    d = int(math.floor(-math.log10(rel_err)))
+    if d < 0:
+        d = 0
+    if d > cap:
+        d = cap
+    return d
 
 
-def clean_output_files() -> None:
-    """Remove ADDA and IFDDA output files and folders."""
-    for path in Path(".").glob("run*"):
-        if path.is_dir():
-            shutil.rmtree(path)
-    for fname in [
-        "ExpCount",
-        "inputmatlab.mat",
-        "filenameh5",
-        "ifdda.h5",
-    ]:
-        if os.path.exists(fname):
-            os.remove(fname)
+def clean_output_files(output_dir: str, engines_cfg: dict) -> None:
+    """
+    Clean only the files inside output_dir,
+    using cleanup rules from engines_cfg (dda_codes.json).
+    """
+    out = Path(output_dir)
+    if not out.exists():
+        return
 
-    for pattern in ["ddscat.par.bak*"]:
-        for path in Path(".").glob(pattern):
-            if path.is_file():
-                path.unlink()
+    remove_names: set[str] = set()
+    remove_globs: list[str] = []
 
-    bin_patterns = [
-        "ddscat.log_*",
-        "mtable",
-        "qtable",
-        "qtable2",
-        "w*.avg",
-        "target.out",
-        "ExpCount",
-        "ddscat.par.bak*",
-    ]
-    for pattern in bin_patterns:
-        for path in Path("bin").glob(pattern):
-            if path.is_file():
-                path.unlink()
+    # collect cleanup rules from all engines
+    for _, cfg in engines_cfg.items():
+        cleanup = cfg.get("cleanup", {})
+        remove_names.update(cleanup.get("remove_names", []))
+        remove_globs.extend(cleanup.get("remove_globs", []))
+
+    # 1) exact names
+    for p in sorted(out.rglob("*"), reverse=True):
+        if p.name not in remove_names:
+            continue
+        try:
+            if p.is_symlink() or p.is_file():
+                p.unlink()
+            elif p.is_dir():
+                shutil.rmtree(p)
+        except Exception:
+            pass
+
+    # 2) glob patterns
+    for pattern in remove_globs:
+        for p in sorted(out.rglob(pattern), reverse=True):
+            try:
+                if p.is_symlink() or p.is_file():
+                    p.unlink()
+                elif p.is_dir():
+                    shutil.rmtree(p)
+            except Exception:
+                pass
