@@ -1,6 +1,7 @@
 import os
 import subprocess
 import shutil
+import shlex
 from pathlib import Path
 from typing import Any
 from .commands import parse_command_lines
@@ -50,7 +51,7 @@ def _build_real_command(
     if not exe_path.is_absolute():
         exe_path = (REPO_ROOT / exe_path).resolve()
 
-    return f"{exe_path} {args}".strip()
+    return f"{shlex.quote(str(exe_path))} {args}".strip()
 
 
 def _sanitize_case_id(case_id: str | None) -> str:
