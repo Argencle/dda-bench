@@ -1,4 +1,6 @@
-## dda-bench
+# dda-bench
+
+[![PyPI](https://img.shields.io/pypi/v/dda-bench.svg)](https://pypi.org/project/dda-bench/)
 
 Benchmark tool for cross comparison of DDA codes.
 
