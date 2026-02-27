@@ -25,7 +25,7 @@ from .utils import (
 )
 
 # display widths
-CASE_W = 45
+CASE_W = 50
 ENGINE_W = 7
 QNAME_W = 3  # label width like "Ext", "Abs", "residual1", "int_field", "force"
 
