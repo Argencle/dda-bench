@@ -1,5 +1,6 @@
 # dda-bench
 
+[![DOI](https://zenodo.org/badge/1087276820.svg)](https://doi.org/10.5281/zenodo.18801224)
 [![PyPI](https://img.shields.io/pypi/v/dda-bench.svg)](https://pypi.org/project/dda-bench/)
 
 Benchmark tool for cross comparison of DDA codes.
