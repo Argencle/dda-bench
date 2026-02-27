@@ -2,10 +2,18 @@
 
 Benchmark tool for cross comparison of DDA codes.
 
-## Install
+## Install (Users)
 
 ```bash
 pip install dda-bench
+```
+
+## Install (Development)
+
+```bash
+git clone https://github.com/Argencle/dda-bench.git
+cd dda-bench
+pip install -e .
 ```
 
 ## Important
