@@ -46,7 +46,8 @@ dda_bench = ["examples/*", "bin/*.dat", "bin/*.par", "bin/diel/*"]
 
 [project.urls]
 Repository = "https://github.com/Argencle/dda-bench"
-Changelog = "https://github.com/Argencle/dda-bench/CHANGELOG.md"
+Changelog = "https://github.com/Argencle/dda-bench/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/Argencle/dda-bench/tree/main/docs/configuration.md"
 
 [tool.mypy]
 ignore_missing_imports = true
