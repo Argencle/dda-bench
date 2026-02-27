@@ -27,3 +27,8 @@ dda_bench/bin/*
 # Output files/folders
 outputs/
 *.log
+
+# dda-bench --init artifacts
+/bin/
+/dda_codes.json
+/DDA_commands
