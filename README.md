@@ -27,6 +27,18 @@ You must provide executables and point your config to valid paths.
 Full configuration reference:
 - [`docs/configuration.md`](docs/configuration.md)
 
+## Paper Context
+
+This repository is linked to, and was developed as part of, a benchmark paper.
+
+The dataset used for that paper is available in:
+- [`https://github.com/Argencle/data-dda-benchmark-paper.git`](https://github.com/Argencle/data-dda-benchmark-paper.git)
+
+To reproduce the equivalent parameter agreement between codes reported in Appendix C of the paper, [patches](https://github.com/Argencle/data-dda-benchmark-paper/tree/main/patches) from that data repository must be applied to ADDA and DDSCAT before running `dda-bench`.
+
+The corresponding benchmark command set is provided in:
+- [`dda_bench/examples/DDA_commands`](dda_bench/examples/DDA_commands)
+
 ### Run benchmark/comparison
 
 ```bash
