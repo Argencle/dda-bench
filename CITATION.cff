@@ -1,0 +1,29 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+authors:
+- family-names: "Argentin"
+  given-names: "Clément"
+  orcid: "https://orcid.org/0009-0008-1270-2428"
+title: "dda-bench"
+version: 0.1.1
+doi: 10.5281/zenodo.18836855
+date-released: 2026-03-02
+url: "https://github.com/Argencle/dda-bench"
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Argentin"
+    given-names: "Clément"
+    orcid: "https://orcid.org/0009-0008-1270-2428"
+  - family-names: "Chaumet"
+    given-names: "Patrick C."
+    orcid: "https://orcid.org/0000-0001-6806-2572"
+  - family-names: "Gross"
+    given-names: "Michel"
+  - family-names: "Yurkin"
+    given-names: "Maxim A."
+    orcid: "https://orcid.org/0000-0002-3524-0093"
+  doi: "10.48550/arXiv.2603.02871"
+  journal: "arXiv preprint"
+  title: "Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking"
+  year: 2026
