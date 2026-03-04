@@ -29,7 +29,7 @@ Full configuration reference:
 
 ## Paper Context
 
-This repository is linked to, and was developed as part of, a benchmark paper.
+This repository is linked to, and was developed as part of, a [benchmark paper](https://arxiv.org/abs/2603.02871).
 
 The dataset used for that paper is available in:
 - [`https://github.com/Argencle/data-dda-benchmark-paper.git`](https://github.com/Argencle/data-dda-benchmark-paper.git)
@@ -39,7 +39,7 @@ To reproduce the equivalent parameter agreement between codes reported in Append
 The corresponding benchmark command set is provided in:
 - [`dda_bench/examples/DDA_commands`](dda_bench/examples/DDA_commands)
 
-### Run benchmark/comparison
+## Run benchmark/comparison
 
 ```bash
 dda-bench --init
@@ -82,3 +82,20 @@ The command writes:
 - `dda_bench.errors.log`
 - per-case `results.json` under output directory
 - `summary.csv` in output directory
+
+## Citation
+
+If you use this code in your research, please cite both the software and the paper.
+
+### Software
+
+Argentin C. (2026). *dda-bench*. Zenodo.
+https://doi.org/10.5281/zenodo.18836855
+
+### Paper
+
+Argentin, C., Chaumet, P. C., Gross, M., & Yurkin, M. A. (2026).
+*Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking*.
+arXiv:2603.02871
+
+You can click the **“Cite this repository”** button on the right-hand side of the GitHub page for citation formats (BibTeX, APA, etc.).
