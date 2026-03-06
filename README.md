@@ -89,13 +89,13 @@ If you use this code in your research, please cite both the software and the pap
 
 ### Software
 
-Argentin C. (2026). *dda-bench*. Zenodo.
-https://doi.org/10.5281/zenodo.18836855
+> Argentin C. (2026). *dda-bench*. Zenodo.
+> [10.5281/zenodo.18836855](https://doi.org/10.5281/zenodo.18836855)
 
 ### Paper
 
-Argentin, C., Chaumet, P. C., Gross, M., & Yurkin, M. A. (2026).
-*Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking*.
-arXiv:2603.02871
+> Argentin, C., Chaumet, P. C., Gross, M., & Yurkin, M. A. (2026).  
+> *Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking*.  
+> [arXiv:2603.02871]( https://doi.org/10.48550/arXiv.2603.02871)
 
 You can click the **“Cite this repository”** button on the right-hand side of the GitHub page for citation formats (BibTeX, APA, etc.).
