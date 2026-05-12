@@ -96,6 +96,6 @@ If you use this code in your research, please cite both the software and the pap
 
 > Argentin, C., Chaumet, P. C., Gross, M., & Yurkin, M. A. (2026).  
 > *Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking*.  
-> [arXiv:2603.02871]( https://doi.org/10.48550/arXiv.2603.02871)
+> [Computer Physics Communications](https://doi.org/10.1016/j.cpc.2026.110172)
 
 You can click the **“Cite this repository”** button on the right-hand side of the GitHub page for citation formats (BibTeX, APA, etc.).
