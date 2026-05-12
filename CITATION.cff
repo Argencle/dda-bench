@@ -23,7 +23,9 @@ preferred-citation:
   - family-names: "Yurkin"
     given-names: "Maxim A."
     orcid: "https://orcid.org/0000-0002-3524-0093"
-  doi: "10.48550/arXiv.2603.02871"
-  journal: "arXiv preprint"
+  doi: "10.1016/j.cpc.2026.110172"
+  journal: "Computer Physics Communications"
   title: "Floating-point--consistent cross-verification methodology for reproducible and interoperable DDA solvers with fair benchmarking"
   year: 2026
+  volume: 325
+  pages: 110172
