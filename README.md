@@ -1,6 +1,6 @@
 # dda-bench
 
-[![DOI](https://zenodo.org/badge/1087276820.svg)](https://doi.org/10.5281/zenodo.18801224)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.18801224.svg)](https://doi.org/10.5281/zenodo.18801224)
 [![PyPI](https://img.shields.io/pypi/v/dda-bench.svg)](https://pypi.org/project/dda-bench/)
 
 Benchmark tool for cross comparison of DDA codes.
@@ -85,12 +85,14 @@ The command writes:
 
 ## Citation
 
-If you use this code in your research, please cite both the software and the paper.
+If you use this code in your research, please cite both the software archived specific version and the associated paper.
 
 ### Software
 
-> Argentin C. (2026). *dda-bench*. Zenodo.
+> Argentin C. (2026). *dda-bench* (vX.Y.Z). Zenodo.
 > [10.5281/zenodo.18836855](https://doi.org/10.5281/zenodo.18836855)
+
+Please replace `vX.Y.Z` with the exact release version used.
 
 ### Paper
 
